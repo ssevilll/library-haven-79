@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Books — Lumen Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="/site/css/styles.css" rel="stylesheet"/>
+</head>
+<body data-nav="books">
+<div id="navbar-mount"></div>
+
+<div class="container section-tight">
+  <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-3 mb-3">
+    <div><div class="eyebrow">Catalog</div><h1 class="mb-0 mt-1" style="font-size:2rem">Books</h1></div>
+    <form class="d-flex flex-grow-1" style="max-width:480px" onsubmit="event.preventDefault();applyQ(this.q.value)">
+      <input class="form-control me-2" type="search" name="q" id="q-input" placeholder="Search title or author..."/>
+      <button class="btn btn-accent">Search</button>
+    </form>
+  </div>
+
+  <div class="row g-4">
+    <aside class="col-lg-3">
+      <div class="filter-panel">
+        <h6>Genre</h6>
+        <div id="genre-list"></div>
+
+        <h6>Author</h6>
+        <select class="form-select" id="f-author"><option value="">All authors</option></select>
+
+        <h6>Language</h6>
+        <select class="form-select" id="f-lang"><option value="">All</option></select>
+
+        <h6>Page count</h6>
+        <div class="d-flex align-items-center gap-2">
+          <input type="number" class="form-control" id="f-min-pages" placeholder="Min" min="0"/>
+          <span class="text-muted-2">–</span>
+          <input type="number" class="form-control" id="f-max-pages" placeholder="Max" min="0"/>
+        </div>
+
+        <h6>Published year</h6>
+        <div class="d-flex align-items-center gap-2">
+          <input type="number" class="form-control" id="f-min-year" placeholder="From"/>
+          <span class="text-muted-2">–</span>
+          <input type="number" class="form-control" id="f-max-year" placeholder="To"/>
+        </div>
+
+        <h6>Min rating</h6>
+        <input type="range" min="0" max="5" step="0.5" value="0" class="form-range" id="f-rating"/>
+        <div class="small text-muted-2"><span id="rating-label">Any</span></div>
+
+        <h6>Availability</h6>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="f-avail"/>
+          <label class="form-check-label" for="f-avail">Available now</label>
+        </div>
+
+        <div class="d-grid gap-2 mt-4">
+          <button class="btn btn-accent" onclick="applyFilters()">Apply filters</button>
+          <button class="btn btn-ghost" onclick="resetFilters()">Reset</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="col-lg-9">
+      <div id="active-chips" class="mb-3"></div>
+      <div id="results-count" class="text-muted-2 small mb-3"></div>
+      <div class="row g-3" id="book-grid"></div>
+      <nav class="mt-4 d-flex justify-content-center"><ul class="pagination" id="pager"></ul></nav>
+    </div>
+  </div>
+</div>
+
+<div id="footer-mount"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/site/js/data.js"></script>
+<script src="/site/js/common.js"></script>
+<script>
+const PAGE_SIZE = 12;
+let state = { q:"", genres:[], author:"", language:"", minPages:null, maxPages:null, minYear:null, maxYear:null, minRating:0, availableOnly:false, libraryId:"", page:1 };
+
+function readQS(){
+  const p = new URLSearchParams(location.search);
+  state.q = p.get("q") || "";
+  state.libraryId = p.get("libraryId") || "";
+  document.getElementById("q-input").value = state.q;
+}
+
+async function init(){
+  readQS();
+  const [genres, authors, langs] = await Promise.all([window.api.getGenres(), window.api.getAuthors(), window.api.getLanguages()]);
+  document.getElementById("genre-list").innerHTML = genres.map(g=>`
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" value="${g.id}" id="g-${g.id}" onchange="toggleGenre('${g.id}',this.checked)"/>
+      <label class="form-check-label" for="g-${g.id}">${g.name}</label>
+    </div>`).join("");
+  document.getElementById("f-author").innerHTML += authors.map(a=>`<option value="${a.id}">${a.name}</option>`).join("");
+  document.getElementById("f-lang").innerHTML += langs.map(l=>`<option value="${l.name}">${l.name}</option>`).join("");
+  document.getElementById("f-rating").addEventListener("input",e=>{document.getElementById("rating-label").textContent = e.target.value==="0"?"Any":`${e.target.value}+ stars`;});
+  await refresh();
+}
+
+function toggleGenre(id, on){
+  state.genres = on ? [...state.genres, id] : state.genres.filter(x=>x!==id);
+}
+
+function applyQ(v){ state.q=v; state.page=1; refresh(); }
+
+function applyFilters(){
+  state.author = document.getElementById("f-author").value;
+  state.language = document.getElementById("f-lang").value;
+  const minP = document.getElementById("f-min-pages").value; state.minPages = minP?+minP:null;
+  const maxP = document.getElementById("f-max-pages").value; state.maxPages = maxP?+maxP:null;
+  const minY = document.getElementById("f-min-year").value; state.minYear = minY?+minY:null;
+  const maxY = document.getElementById("f-max-year").value; state.maxYear = maxY?+maxY:null;
+  state.minRating = +document.getElementById("f-rating").value || 0;
+  state.availableOnly = document.getElementById("f-avail").checked;
+  state.page = 1;
+  refresh();
+}
+function resetFilters(){ state = { q:"", genres:[], author:"", language:"", minPages:null, maxPages:null, minYear:null, maxYear:null, minRating:0, availableOnly:false, libraryId:"", page:1 };
+  document.querySelectorAll(".filter-panel input,.filter-panel select").forEach(el=>{ if(el.type==="checkbox") el.checked=false; else el.value=""; });
+  document.getElementById("f-rating").value=0;
+  document.getElementById("rating-label").textContent="Any";
+  refresh();
+}
+
+async function refresh(){
+  const grid = document.getElementById("book-grid");
+  grid.innerHTML = skeletonGrid(8);
+  const books = await window.api.getBooks(state);
+  document.getElementById("results-count").textContent = `${books.length} book${books.length===1?"":"s"} found`;
+  renderChips();
+  if(!books.length){ grid.innerHTML = `<div class="col-12">${emptyState("No books match your filters.","🔍")}</div>`; document.getElementById("pager").innerHTML=""; return; }
+  const pages = Math.ceil(books.length / PAGE_SIZE);
+  if(state.page>pages) state.page = 1;
+  const start = (state.page-1)*PAGE_SIZE;
+  const slice = books.slice(start, start+PAGE_SIZE);
+  grid.innerHTML = slice.map(b=>`<div class="col-6 col-sm-4 col-md-3">${bookCard(b)}</div>`).join("");
+  renderPager(pages);
+}
+
+function renderChips(){
+  const chips = [];
+  if(state.q) chips.push(`Search: "${state.q}"`);
+  state.genres.forEach(id=>{ const el = document.querySelector(`label[for=g-${id}]`); if(el) chips.push(el.textContent); });
+  if(state.author) chips.push(`Author: ${document.getElementById("f-author").selectedOptions[0].text}`);
+  if(state.language) chips.push(state.language);
+  if(state.minRating) chips.push(`${state.minRating}★+`);
+  if(state.availableOnly) chips.push("Available now");
+  if(state.libraryId) chips.push(`Branch filter`);
+  document.getElementById("active-chips").innerHTML = chips.map(c=>`<span class="chip">${c}</span>`).join("");
+}
+
+function renderPager(pages){
+  const el = document.getElementById("pager");
+  if(pages<=1){ el.innerHTML=""; return; }
+  let html = `<li class="page-item ${state.page===1?'disabled':''}"><a class="page-link" href="#" onclick="event.preventDefault();goPage(${state.page-1})">‹</a></li>`;
+  for(let i=1;i<=pages;i++){
+    html += `<li class="page-item ${state.page===i?'active':''}"><a class="page-link" href="#" onclick="event.preventDefault();goPage(${i})">${i}</a></li>`;
+  }
+  html += `<li class="page-item ${state.page===pages?'disabled':''}"><a class="page-link" href="#" onclick="event.preventDefault();goPage(${state.page+1})">›</a></li>`;
+  el.innerHTML = html;
+}
+function goPage(p){ state.page=p; refresh(); window.scrollTo({top:0,behavior:"smooth"}); }
+
+init();
+</script>
+</body>
+</html>

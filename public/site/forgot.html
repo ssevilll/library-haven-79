@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Forgot password — Lumen Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="/site/css/styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div id="navbar-mount"></div>
+<div class="auth-shell">
+  <div class="auth-card">
+    <h2>Forgot your password?</h2>
+    <div class="sub">Enter your email and we'll send a reset link.</div>
+    <form onsubmit="event.preventDefault();toast('Reset link sent — check your inbox');setTimeout(()=>location.href='/site/reset.html',900)">
+      <div class="mb-3"><label class="form-label">Email</label><input class="form-control" type="email" required/></div>
+      <button class="btn btn-accent w-100">Send reset link</button>
+    </form>
+    <div class="text-center mt-3 small text-muted-2"><a href="/site/login.html">Back to log in</a></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/site/js/data.js"></script>
+<script src="/site/js/common.js"></script>
+</body>
+</html>
