@@ -16,7 +16,12 @@
     <div class="sub">We sent a 6-digit code to <strong id="email-ph">your inbox</strong>. Enter it below. <br/><span class="text-muted-2 small">(demo code: <code>123456</code>)</span></div>
     <form onsubmit="event.preventDefault();doVerify()">
       <div class="code-inputs my-4" id="code-inputs">
-        ${Array.from({length:6}).map((_,i)=>`<input inputmode="numeric" maxlength="1" data-i="${i}" required/>`).join("")}
+        <input inputmode="numeric" maxlength="1" required/>
+        <input inputmode="numeric" maxlength="1" required/>
+        <input inputmode="numeric" maxlength="1" required/>
+        <input inputmode="numeric" maxlength="1" required/>
+        <input inputmode="numeric" maxlength="1" required/>
+        <input inputmode="numeric" maxlength="1" required/>
       </div>
       <button class="btn btn-accent w-100" id="btn">Verify</button>
       <div class="mt-3 small text-muted-2">Didn't get it? <a href="#" onclick="event.preventDefault();toast('Code resent')">Resend code</a></div>
