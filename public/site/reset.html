@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Reset password — Lumen Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="/site/css/styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div id="navbar-mount"></div>
+<div class="auth-shell">
+  <div class="auth-card">
+    <h2>Set a new password.</h2>
+    <div class="sub">Make it something you'll remember.</div>
+    <form onsubmit="event.preventDefault();if(this.pw.value!==this.pw2.value){toast('Passwords do not match');return;}toast('Password updated!');setTimeout(()=>location.href='/site/login.html',900)">
+      <div class="mb-3"><label class="form-label">New password</label><input class="form-control" type="password" name="pw" required minlength="6"/></div>
+      <div class="mb-3"><label class="form-label">Confirm new password</label><input class="form-control" type="password" name="pw2" required minlength="6"/></div>
+      <button class="btn btn-accent w-100">Update password</button>
+    </form>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/site/js/data.js"></script>
+<script src="/site/js/common.js"></script>
+</body>
+</html>

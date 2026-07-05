@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Gallery — Lumen Library</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="/site/css/styles.css" rel="stylesheet"/>
+</head>
+<body data-nav="gallery">
+<div id="navbar-mount"></div>
+
+<div class="container section-tight">
+  <div class="eyebrow">Gallery</div>
+  <h1 class="mt-1">Life at Lumen.</h1>
+  <p class="text-muted-2 mb-4">Photos from our reading rooms, events, and quiet weekday afternoons.</p>
+  <div class="gallery-grid" id="grid"></div>
+</div>
+
+<div class="modal fade" id="lightbox" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background:transparent;border:none">
+      <img id="lb-img" style="width:100%;border-radius:14px" alt=""/>
+    </div>
+  </div>
+</div>
+
+<div id="footer-mount"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/site/js/data.js"></script>
+<script src="/site/js/common.js"></script>
+<script>
+(async function(){
+  const items = await window.api.getGalleryItems();
+  const grid = document.getElementById("grid");
+  if(!items.length){ grid.innerHTML = emptyState("Nothing in the gallery yet.","🖼️"); return; }
+  grid.innerHTML = items.map(it=>`<div class="item" onclick="openLB('${it.url}')"><img src="${it.url}" alt="" loading="lazy"/></div>`).join("");
+})();
+function openLB(url){
+  document.getElementById("lb-img").src = url;
+  new bootstrap.Modal(document.getElementById("lightbox")).show();
+}
+</script>
+</body>
+</html>
