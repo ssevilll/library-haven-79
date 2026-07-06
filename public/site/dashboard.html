@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>My Dashboard — Lumen Library</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="/site/css/styles.css" rel="stylesheet"/>
+</head>
+<body data-nav="">
+<div id="navbar-mount"></div>
+
+<main class="container">
+  <div class="dash-shell">
+    <aside class="dash-side">
+      <div class="who">
+        <div class="av" id="side-av">M</div>
+        <div>
+          <div class="nm" id="side-nm">Member</div>
+          <div class="em" id="side-em">member@lumen.lib</div>
+        </div>
+      </div>
+      <nav class="dash-nav" id="dash-nav">
+        <button data-pane="account" class="active">👤 Account</button>
+        <button data-pane="books">📚 My Books <span class="count" id="cnt-books">·</span></button>
+        <button data-pane="stats">📊 Statistics</button>
+        <button data-pane="shelves">🔖 Lists &amp; Shelves</button>
+        <button data-pane="rooms">🪑 Room Reservations <span class="count" id="cnt-rooms">·</span></button>
+        <button data-pane="payments">💳 Payments <span class="count" id="cnt-pay">·</span></button>
+        <button class="logout" id="btn-logout">↪ Logout</button>
+      </nav>
+    </aside>
+
+    <section class="dash-main">
+      <!-- Account -->
+      <div class="pane active" id="pane-account">
+        <h2>Account</h2>
+        <div class="sub">Manage your profile and library membership.</div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-4"><div class="stat-card"><div class="label">Home Library</div><div class="val" id="acc-lib" style="font-size:1.15rem">—</div></div></div>
+          <div class="col-md-4"><div class="stat-card"><div class="label">Membership</div><div class="val" id="acc-sub" style="font-size:1.15rem">—</div></div></div>
+          <div class="col-md-4"><div class="stat-card"><div class="label">Member ID</div><div class="val" id="acc-id" style="font-size:1.15rem">—</div></div></div>
+        </div>
+
+        <div class="card-lib p-4">
+          <h5 class="mb-3">Profile</h5>
+          <form id="profile-form" class="row g-3">
+            <div class="col-md-6"><label class="form-label">Full name</label><input class="form-control" name="fullName" required/></div>
+            <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" name="email" type="email" required/></div>
+            <div class="col-md-6"><label class="form-label">Phone</label><input class="form-control" name="phoneNumber" placeholder="+1 (555) 000-0000"/></div>
+            <div class="col-md-6"><label class="form-label">Home library</label>
+              <select class="form-select" name="libraryId" id="lib-select"></select>
+            </div>
+            <div class="col-12 d-flex gap-2 justify-content-end">
+              <button type="button" class="btn btn-ghost" data-bs-toggle="modal" data-bs-target="#pwdModal">Change password</button>
+              <button type="submit" class="btn btn-accent">Save changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- My Books -->
+      <div class="pane" id="pane-books">
+        <h2>My Books</h2>
+        <div class="sub">Everything you're currently reading, holding, or have returned.</div>
+        <div class="tab-bar" id="books-tabs">
+          <button class="active" data-tab="active">Currently borrowed</button>
+          <button data-tab="reservations">Reservations</button>
+          <button data-tab="history">History</button>
+        </div>
+        <div id="books-tab-body"></div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="pane" id="pane-stats">
+        <h2>Reading Statistics</h2>
+        <div class="sub">Your reading rhythm across time.</div>
+        <div class="row g-3 mb-4" id="stats-cards"></div>
+        <div class="card-lib p-3 mb-4">
+          <div class="d-flex justify-content-between align-items-baseline mb-2"><h5 class="mb-0">Books per month</h5><span class="text-muted-2 small">Last 12 months</span></div>
+          <div class="bar-chart" id="bar-chart"></div>
+          <div style="height:24px"></div>
+        </div>
+        <div class="card-lib p-4">
+          <h5 class="mb-3">Reading by genre</h5>
+          <div id="genre-list"></div>
+        </div>
+      </div>
+
+      <!-- Shelves -->
+      <div class="pane" id="pane-shelves">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div><h2>Lists &amp; Shelves</h2><div class="sub">Organize what you love and what's next.</div></div>
+          <button class="btn btn-accent" id="btn-new-shelf">+ New shelf</button>
+        </div>
+        <div class="row g-3" id="shelves-grid"></div>
+      </div>
+
+      <!-- Rooms -->
+      <div class="pane" id="pane-rooms">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div><h2>Room Reservations</h2><div class="sub">Your quiet spaces and group rooms.</div></div>
+          <a class="btn btn-accent" href="/site/rooms.html">+ Book a room</a>
+        </div>
+        <div class="tab-bar" id="rooms-tabs">
+          <button class="active" data-tab="upcoming">Upcoming</button>
+          <button data-tab="past">Past</button>
+          <button data-tab="cancelled">Cancelled</button>
+        </div>
+        <div id="rooms-tab-body"></div>
+      </div>
+
+      <!-- Payments -->
+      <div class="pane" id="pane-payments">
+        <h2>Payments</h2>
+        <div class="sub">Fees, membership, and payment history.</div>
+        <div id="pay-hero"></div>
+        <div class="card-lib p-3">
+          <h5 class="mb-3 px-2">Transactions</h5>
+          <div class="table-responsive">
+            <table class="tx-table">
+              <thead><tr><th>Date</th><th>Type</th><th>Description</th><th class="text-end">Amount</th><th>Status</th></tr></thead>
+              <tbody id="tx-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Password modal -->
+<div class="modal fade" id="pwdModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Change password</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <form id="pwd-form"><div class="modal-body">
+      <div class="mb-3"><label class="form-label">Current password</label><input class="form-control" type="password" name="old" required/></div>
+      <div class="mb-3"><label class="form-label">New password</label><input class="form-control" type="password" name="new" required minlength="6"/></div>
+      <div class="mb-3"><label class="form-label">Confirm new password</label><input class="form-control" type="password" name="cnf" required minlength="6"/></div>
+    </div><div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button><button class="btn btn-accent" type="submit">Update</button></div></form>
+  </div></div>
+</div>
+
+<!-- Pay modal -->
+<div class="modal fade" id="payModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Pay outstanding balance</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <form id="pay-form"><div class="modal-body">
+      <div class="mb-3"><label class="form-label">Amount</label><input class="form-control" name="amt" id="pay-amt" readonly/></div>
+      <div class="mb-3"><label class="form-label">Card number</label><input class="form-control" placeholder="4242 4242 4242 4242" required/></div>
+      <div class="row g-2">
+        <div class="col-6"><label class="form-label">Expiry</label><input class="form-control" placeholder="MM/YY" required/></div>
+        <div class="col-6"><label class="form-label">CVC</label><input class="form-control" placeholder="123" required/></div>
+      </div>
+    </div><div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button><button class="btn btn-accent" type="submit">Pay now</button></div></form>
+  </div></div>
+</div>
+
+<!-- Shelf modal -->
+<div class="modal fade" id="shelfModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">New shelf</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <form id="shelf-form"><div class="modal-body">
+      <div class="mb-3"><label class="form-label">Name</label><input class="form-control" name="name" required maxlength="40"/></div>
+      <div class="mb-3"><label class="form-label">Icon (single emoji)</label><input class="form-control" name="icon" value="📖" maxlength="2"/></div>
+    </div><div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button><button class="btn btn-accent" type="submit">Create</button></div></form>
+  </div></div>
+</div>
+
+<div id="footer-mount"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/site/js/data.js"></script>
+<script src="/site/js/common.js"></script>
+<script>
+(async function(){
+  // require login (mock)
+  let user = window.api.currentUser();
+  if(!user){ location.href = "/site/login.html?next=/site/dashboard.html"; return; }
+
+  // seed sidebar
+  const setSide = () => {
+    user = window.api.currentUser();
+    document.getElementById("side-av").textContent = (user.fullName||"M").slice(0,1).toUpperCase();
+    document.getElementById("side-nm").textContent = user.fullName;
+    document.getElementById("side-em").textContent = user.email;
+  };
+  setSide();
+
+  // nav switching
+  const panes = document.querySelectorAll(".pane");
+  const buttons = document.querySelectorAll(".dash-nav [data-pane]");
+  const activate = (key) => {
+    buttons.forEach(b=>b.classList.toggle("active", b.dataset.pane===key));
+    panes.forEach(p=>p.classList.toggle("active", p.id==="pane-"+key));
+    history.replaceState(null,"","#"+key);
+    if(key==="stats") renderStats();
+    if(key==="shelves") renderShelves();
+    if(key==="books") renderBooksTab("active");
+    if(key==="rooms") renderRoomsTab("upcoming");
+    if(key==="payments") renderPayments();
+    if(key==="account") renderAccount();
+  };
+  buttons.forEach(b=>b.addEventListener("click", ()=>activate(b.dataset.pane)));
+
+  document.getElementById("btn-logout").addEventListener("click", async ()=>{
+    await window.api.logout();
+    toast("Signed out");
+    setTimeout(()=>location.href="/site/index.html", 400);
+  });
+
+  // ---------- Account ----------
+  async function renderAccount(){
+    const libs = await window.api.getLibraries();
+    const sel = document.getElementById("lib-select");
+    sel.innerHTML = libs.map(l=>`<option value="${l.id}">${l.name}</option>`).join("");
+    const f = document.getElementById("profile-form");
+    f.fullName.value = user.fullName || "";
+    f.email.value = user.email || "";
+    f.phoneNumber.value = user.phoneNumber || "";
+    f.libraryId.value = user.libraryId || libs[0].id;
+    const lib = libs.find(l=>l.id===user.libraryId) || libs[0];
+    document.getElementById("acc-lib").textContent = lib.name;
+    document.getElementById("acc-sub").textContent = user.isSubscribed ? "Active — Annual" : "Not subscribed";
+    document.getElementById("acc-id").textContent = "#" + (user.id||"u1").toUpperCase();
+  }
+  document.getElementById("profile-form").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    await window.api.updateProfile(Object.fromEntries(fd));
+    setSide(); renderAccount();
+    toast("Profile updated");
+  });
+  document.getElementById("pwd-form").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    if(fd.get("new")!==fd.get("cnf")){ toast("Passwords do not match","danger"); return; }
+    await window.api.changePassword(fd.get("old"), fd.get("new"));
+    bootstrap.Modal.getInstance(document.getElementById("pwdModal")).hide();
+    e.target.reset();
+    toast("Password changed");
+  });
+
+  // ---------- My Books ----------
+  document.querySelectorAll("#books-tabs button").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      document.querySelectorAll("#books-tabs button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      renderBooksTab(b.dataset.tab);
+    });
+  });
+  function loanRow(l){
+    const daysLeft = Math.ceil((new Date(l.dueDate) - new Date()) / 86400000);
+    const dueTxt = l.status==="overdue" ? `Overdue by ${Math.abs(daysLeft)} day${Math.abs(daysLeft)!==1?"s":""}`
+                : daysLeft<=0 ? "Due today" : `Due in ${daysLeft} day${daysLeft!==1?"s":""}`;
+    return `<div class="loan-row">
+      <a class="cov" href="/site/book.html?id=${l.book.id}"><img src="${l.book.mainImageUrl}" alt=""/></a>
+      <div>
+        <div class="t"><a href="/site/book.html?id=${l.book.id}" style="color:inherit">${l.book.title}</a></div>
+        <div class="a">${l.book.authorName}</div>
+        <div class="due"><span class="pill ${l.status}">${l.status.replace("-"," ")}</span>
+          <span class="text-muted-2 ms-2">${dueTxt} · ${fmtDate(l.dueDate)}</span>
+          ${l.fine?`<span class="ms-2 text-danger">Fine $${l.fine.toFixed(2)}</span>`:""}
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-accent btn-sm" ${l.renewals>=2?"disabled":""}>Renew</button>
+        <button class="btn btn-ghost btn-sm">Return</button>
+      </div>
+    </div>`;
+  }
+  function reservationRow(r){
+    return `<div class="loan-row">
+      <a class="cov" href="/site/book.html?id=${r.book.id}"><img src="${r.book.mainImageUrl}" alt=""/></a>
+      <div>
+        <div class="t">${r.book.title}</div>
+        <div class="a">${r.book.authorName}</div>
+        <div class="due"><span class="pill active">Queue position ${r.position}</span>
+          <span class="text-muted-2 ms-2">Pickup by ${fmtDate(r.pickupBy)} · ${r.libraryName}</span>
+        </div>
+      </div>
+      <div><button class="btn btn-ghost btn-sm">Cancel</button></div>
+    </div>`;
+  }
+  function historyRow(h){
+    return `<div class="loan-row">
+      <a class="cov" href="/site/book.html?id=${h.book.id}"><img src="${h.book.mainImageUrl}" alt=""/></a>
+      <div>
+        <div class="t">${h.book.title}</div>
+        <div class="a">${h.book.authorName}</div>
+        <div class="due text-muted-2">Borrowed ${fmtDate(h.borrowedDate)} · Returned ${fmtDate(h.returnedDate)}</div>
+      </div>
+      <div>${starRow(h.rating)}</div>
+    </div>`;
+  }
+  async function renderBooksTab(tab){
+    const body = document.getElementById("books-tab-body");
+    body.innerHTML = `<div class="text-muted-2">Loading…</div>`;
+    if(tab==="active"){
+      const loans = await window.api.getMyLoans();
+      document.getElementById("cnt-books").textContent = loans.length;
+      body.innerHTML = loans.length ? loans.map(loanRow).join("") : emptyState("You have no active loans.","📖");
+    } else if(tab==="reservations"){
+      const rs = await window.api.getMyReservations();
+      body.innerHTML = rs.length ? rs.map(reservationRow).join("") : emptyState("No reservations yet.","🔖");
+    } else {
+      const h = await window.api.getMyHistory();
+      body.innerHTML = h.length ? h.map(historyRow).join("") : emptyState("No reading history yet.","📚");
+    }
+  }
+
+  // ---------- Stats ----------
+  async function renderStats(){
+    const s = await window.api.getMyStats();
+    document.getElementById("stats-cards").innerHTML = [
+      ["Total borrowed", s.totalBorrowed, "All-time"],
+      ["This year", s.thisYear, "+3 vs last year"],
+      ["Pages read", s.pagesRead.toLocaleString(), "Since joining"],
+      ["Avg. rating", s.avgRating.toFixed(1) + " ★", "Across "+s.totalBorrowed+" books"],
+    ].map(([l,v,d])=>`<div class="col-6 col-md-3"><div class="stat-card"><div class="label">${l}</div><div class="val">${v}</div><div class="delta">${d}</div></div></div>`).join("");
+    const max = Math.max(...s.monthly);
+    const now = new Date();
+    document.getElementById("bar-chart").innerHTML = s.monthly.map((v,i)=>{
+      const d = new Date(now.getFullYear(), now.getMonth()-11+i, 1);
+      const m = d.toLocaleDateString(undefined,{month:"short"})[0];
+      return `<div class="bar" style="height:${Math.max(4, (v/max)*100)}%"><span>${m}</span></div>`;
+    }).join("");
+    const gmax = Math.max(...s.byGenre.map(g=>g.count));
+    document.getElementById("genre-list").innerHTML = s.byGenre.map(g=>`
+      <div class="genre-bar"><div class="nm">${g.name}</div><div class="track"><div class="fill" style="width:${(g.count/gmax)*100}%"></div></div><div class="n">${g.count}</div></div>
+    `).join("");
+  }
+
+  // ---------- Shelves ----------
+  async function renderShelves(){
+    const shelves = await window.api.getMyShelves();
+    const grid = document.getElementById("shelves-grid");
+    if(!shelves.length){ grid.innerHTML = `<div class="col-12">${emptyState("You haven't created any shelves yet.","🔖")}</div>`; return; }
+    const allBooks = await window.api.getBooks();
+    grid.innerHTML = shelves.map(sh=>{
+      const books = sh.bookIds.map(id=>allBooks.find(b=>b.id===id)).filter(Boolean);
+      const thumbs = books.slice(0,4).map(b=>`<img src="${b.mainImageUrl}" alt="${b.title}"/>`).join("");
+      const more = books.length>4?`<div class="more">+${books.length-4}</div>`:"";
+      return `<div class="col-md-6 col-lg-4"><div class="shelf-card">
+        <div class="head"><div class="nm">${sh.icon||"📖"} ${sh.name}</div>
+          <button class="btn btn-ghost btn-sm" data-del="${sh.id}">Delete</button></div>
+        <div class="thumbs">${thumbs||'<span class="text-muted-2 small">Empty</span>'}${more}</div>
+        <div class="text-muted-2 small">${books.length} book${books.length!==1?"s":""}</div>
+      </div></div>`;
+    }).join("");
+    grid.querySelectorAll("[data-del]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const id = btn.dataset.del;
+        const next = shelves.filter(s=>s.id!==id);
+        await window.api.saveMyShelves(next);
+        toast("Shelf deleted");
+        renderShelves();
+      });
+    });
+  }
+  document.getElementById("btn-new-shelf").addEventListener("click", ()=>{
+    new bootstrap.Modal(document.getElementById("shelfModal")).show();
+  });
+  document.getElementById("shelf-form").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const shelves = await window.api.getMyShelves();
+    shelves.push({ id:"sh"+Date.now(), name:fd.get("name"), icon:fd.get("icon")||"📖", bookIds:[] });
+    await window.api.saveMyShelves(shelves);
+    bootstrap.Modal.getInstance(document.getElementById("shelfModal")).hide();
+    e.target.reset(); e.target.icon.value = "📖";
+    toast("Shelf created");
+    renderShelves();
+  });
+
+  // ---------- Rooms ----------
+  document.querySelectorAll("#rooms-tabs button").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      document.querySelectorAll("#rooms-tabs button").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active");
+      renderRoomsTab(b.dataset.tab);
+    });
+  });
+  async function renderRoomsTab(tab){
+    const body = document.getElementById("rooms-tab-body");
+    body.innerHTML = `<div class="text-muted-2">Loading…</div>`;
+    const all = await window.api.getMyRoomReservations();
+    const map = { upcoming:"upcoming", past:"completed", cancelled:"cancelled" };
+    const list = all.filter(r=>r.status===map[tab]);
+    document.getElementById("cnt-rooms").textContent = all.filter(r=>r.status==="upcoming").length;
+    if(!list.length){ body.innerHTML = emptyState("Nothing here yet.","🪑"); return; }
+    body.innerHTML = list.map(r=>`
+      <div class="loan-row" style="grid-template-columns:1fr auto">
+        <div>
+          <div class="t">${r.room.name} <span class="pill ${r.status} ms-2">${r.status}</span></div>
+          <div class="a">${r.room.libraryName} · Capacity ${r.room.capacity}</div>
+          <div class="due text-muted-2">${fmtDate(r.date)} · ${r.start}–${r.end}</div>
+        </div>
+        <div>${r.status==="upcoming"?`<button class="btn btn-ghost btn-sm" data-cancel="${r.id}">Cancel</button>`:""}</div>
+      </div>`).join("");
+    body.querySelectorAll("[data-cancel]").forEach(b=>{
+      b.addEventListener("click", async ()=>{
+        await window.api.cancelRoomReservation(b.dataset.cancel);
+        toast("Reservation cancelled");
+        renderRoomsTab(tab);
+      });
+    });
+  }
+
+  // ---------- Payments ----------
+  async function renderPayments(){
+    const p = await window.api.getMyPayments();
+    document.getElementById("cnt-pay").textContent = p.balance>0 ? "$"+p.balance.toFixed(0) : "0";
+    document.getElementById("pay-hero").innerHTML = `
+      <div class="balance-hero">
+        <div>
+          <div class="lbl">Outstanding balance</div>
+          <div class="amt">$${p.balance.toFixed(2)}</div>
+          <div class="mt-1" style="opacity:.9;font-size:.9rem">${p.balance>0?"Late fees from overdue loans.":"You're all settled up. Thanks!"}</div>
+        </div>
+        <button class="btn btn-light fw-semibold" ${p.balance<=0?"disabled":""} id="btn-pay">Pay now</button>
+      </div>`;
+    document.getElementById("tx-body").innerHTML = p.transactions.map(t=>`
+      <tr>
+        <td>${fmtDate(t.date)}</td>
+        <td>${t.type}</td>
+        <td class="text-muted-2">${t.description}</td>
+        <td class="text-end ${t.amount<0?"amt-neg":"amt-pos"}">${t.amount<0?"−":"+"}$${Math.abs(t.amount).toFixed(2)}</td>
+        <td><span class="pill ${t.status}">${t.status}</span></td>
+      </tr>`).join("");
+    const btn = document.getElementById("btn-pay");
+    if(btn) btn.addEventListener("click", ()=>{
+      document.getElementById("pay-amt").value = "$"+p.balance.toFixed(2);
+      new bootstrap.Modal(document.getElementById("payModal")).show();
+    });
+  }
+  document.getElementById("pay-form").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    await window.api.payBalance();
+    bootstrap.Modal.getInstance(document.getElementById("payModal")).hide();
+    e.target.reset();
+    toast("Payment successful");
+    renderPayments();
+  });
+
+  // preload counts for sidebar badges
+  Promise.all([window.api.getMyLoans(), window.api.getMyRoomReservations(), window.api.getMyPayments()])
+    .then(([l,r,p])=>{
+      document.getElementById("cnt-books").textContent = l.length;
+      document.getElementById("cnt-rooms").textContent = r.filter(x=>x.status==="upcoming").length;
+      document.getElementById("cnt-pay").textContent = p.balance>0 ? "$"+p.balance.toFixed(0) : "0";
+    });
+
+  // initial pane from hash
+  const initial = (location.hash||"#account").slice(1);
+  if(document.getElementById("pane-"+initial)) activate(initial); else renderAccount();
+})();
+</script>
+</body>
+</html>
