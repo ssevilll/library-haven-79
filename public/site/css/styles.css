@@ -37,6 +37,10 @@ a:hover{color:var(--accent-600)}
 .btn-outline-accent:hover{background:var(--accent);color:#fff}
 .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
 .btn-ghost:hover{background:#f0ede4}
+.btn-danger{background:var(--danger);color:#fff;border:none}
+.btn-danger:hover{background:#8a1c16;color:#fff}
+.btn-outline-danger{border:1px solid var(--danger);color:var(--danger);background:transparent}
+.btn-outline-danger:hover{background:var(--danger);color:#fff}
 
 .card-lib{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);transition:transform .18s ease, box-shadow .18s ease;overflow:hidden}
 .card-lib:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(18,38,43,.09)}
@@ -169,6 +173,9 @@ a:hover{color:var(--accent-600)}
 .dash-nav button .count{margin-left:auto;font-size:.72rem;background:var(--accent-50);color:var(--accent-600);padding:.1rem .5rem;border-radius:999px;font-weight:600}
 .dash-nav .logout{color:var(--danger);margin-top:.5rem;border-top:1px solid var(--line);border-radius:0;padding-top:.9rem}
 .dash-nav .logout:hover{background:#fbe6e4;color:var(--danger)}
+.dash-nav .danger{color:var(--danger);border-radius:0;padding:.65rem .75rem}
+.dash-nav .danger:hover{background:#fbe6e4;color:var(--danger)}
+.dash-nav .danger.active{background:var(--danger);color:#fff}
 
 .dash-main{min-width:0}
 .pane{display:none}
