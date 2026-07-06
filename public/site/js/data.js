@@ -214,6 +214,7 @@ window.api = {
     return { ok:true, user:u };
   },
   async changePassword(_o,_n){ await delay(250); return { ok:true }; },
+  async deleteAccount(_confirmation){ await delay(400); localStorage.removeItem("lumen_user"); localStorage.removeItem("lumen_shelves"); return {ok:true}; },
   // small counters used by navbar badges
   async unreadCounts(){ await delay(50); return { announcements: 2, chat: 3 }; },
 

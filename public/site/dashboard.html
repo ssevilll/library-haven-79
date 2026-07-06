@@ -29,6 +29,7 @@
         <button data-pane="rooms">🪑 Room Reservations <span class="count" id="cnt-rooms">·</span></button>
         <button data-pane="payments">💳 Payments <span class="count" id="cnt-pay">·</span></button>
         <button class="logout" id="btn-logout">↪ Logout</button>
+        <button class="danger" data-pane="delete">🗑 Delete Account</button>
       </nav>
     </aside>
 
@@ -67,7 +68,6 @@
         <div class="sub">Everything you're currently reading, holding, or have returned.</div>
         <div class="tab-bar" id="books-tabs">
           <button class="active" data-tab="active">Currently borrowed</button>
-          <button data-tab="reservations">Reservations</button>
           <button data-tab="history">History</button>
         </div>
         <div id="books-tab-body"></div>
@@ -125,6 +125,30 @@
               <tbody id="tx-body"></tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <!-- Delete Account -->
+      <div class="pane" id="pane-delete">
+        <h2 class="text-danger">Delete Account</h2>
+        <div class="sub">This will permanently close your Lumen Library membership and remove all your data.</div>
+        <div class="card-lib p-4" style="border-left:4px solid var(--danger)">
+          <p class="text-muted-2">Before deleting:</p>
+          <ul class="text-muted-2 mb-4">
+            <li>Return all borrowed books and clear outstanding fines.</li>
+            <li>Your shelves, history, and personal data will be erased.</li>
+            <li>This action cannot be undone.</li>
+          </ul>
+          <form id="delete-form">
+            <div class="mb-3">
+              <label class="form-label">Type <strong>DELETE</strong> to confirm</label>
+              <input class="form-control" name="confirm" required pattern="DELETE" placeholder="DELETE"/>
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+              <button type="button" class="btn btn-ghost" id="btn-delete-cancel">Cancel</button>
+              <button type="submit" class="btn btn-danger">Delete my account permanently</button>
+            </div>
+          </form>
         </div>
       </div>
     </section>
@@ -202,6 +226,7 @@
     if(key==="rooms") renderRoomsTab("upcoming");
     if(key==="payments") renderPayments();
     if(key==="account") renderAccount();
+    if(key==="delete") renderDeleteAccount();
   };
   buttons.forEach(b=>b.addEventListener("click", ()=>activate(b.dataset.pane)));
 
@@ -271,19 +296,6 @@
       </div>
     </div>`;
   }
-  function reservationRow(r){
-    return `<div class="loan-row">
-      <a class="cov" href="/site/book.html?id=${r.book.id}"><img src="${r.book.mainImageUrl}" alt=""/></a>
-      <div>
-        <div class="t">${r.book.title}</div>
-        <div class="a">${r.book.authorName}</div>
-        <div class="due"><span class="pill active">Queue position ${r.position}</span>
-          <span class="text-muted-2 ms-2">Pickup by ${fmtDate(r.pickupBy)} · ${r.libraryName}</span>
-        </div>
-      </div>
-      <div><button class="btn btn-ghost btn-sm">Cancel</button></div>
-    </div>`;
-  }
   function historyRow(h){
     return `<div class="loan-row">
       <a class="cov" href="/site/book.html?id=${h.book.id}"><img src="${h.book.mainImageUrl}" alt=""/></a>
@@ -302,9 +314,6 @@
       const loans = await window.api.getMyLoans();
       document.getElementById("cnt-books").textContent = loans.length;
       body.innerHTML = loans.length ? loans.map(loanRow).join("") : emptyState("You have no active loans.","📖");
-    } else if(tab==="reservations"){
-      const rs = await window.api.getMyReservations();
-      body.innerHTML = rs.length ? rs.map(reservationRow).join("") : emptyState("No reservations yet.","🔖");
     } else {
       const h = await window.api.getMyHistory();
       body.innerHTML = h.length ? h.map(historyRow).join("") : emptyState("No reading history yet.","📚");
@@ -443,6 +452,20 @@
     e.target.reset();
     toast("Payment successful");
     renderPayments();
+  });
+
+  // ---------- Delete Account ----------
+  function renderDeleteAccount(){
+    document.getElementById("delete-form").reset();
+  }
+  document.getElementById("btn-delete-cancel").addEventListener("click", ()=>activate("account"));
+  document.getElementById("delete-form").addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    if(fd.get("confirm") !== "DELETE"){ toast("Type DELETE to confirm","danger"); return; }
+    await window.api.deleteAccount("DELETE");
+    toast("Account deleted");
+    setTimeout(()=>location.href="/site/index.html", 600);
   });
 
   // preload counts for sidebar badges
