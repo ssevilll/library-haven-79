@@ -207,6 +207,99 @@ window.api = {
   },
   async logout(){ localStorage.removeItem("lumen_user"); },
   currentUser(){ try{ return JSON.parse(localStorage.getItem("lumen_user")||"null"); }catch{return null;} },
+  async updateProfile(patch){
+    await delay(200);
+    const u = { ...(this.currentUser()||{}), ...patch };
+    localStorage.setItem("lumen_user", JSON.stringify(u));
+    return { ok:true, user:u };
+  },
+  async changePassword(_o,_n){ await delay(250); return { ok:true }; },
   // small counters used by navbar badges
   async unreadCounts(){ await delay(50); return { announcements: 2, chat: 3 }; },
+
+  // ---- Member dashboard mock ----
+  async getMyLoans(){
+    await delay(160);
+    const pick = (i)=>BOOKS[i];
+    return [
+      { id:"ln1", book:pick(2), borrowedDate:"2026-06-18", dueDate:"2026-07-09", status:"active", renewals:0 },
+      { id:"ln2", book:pick(5), borrowedDate:"2026-06-22", dueDate:"2026-07-06", status:"due-soon", renewals:1 },
+      { id:"ln3", book:pick(11), borrowedDate:"2026-06-04", dueDate:"2026-06-25", status:"overdue", renewals:0, fine:3.50 },
+    ];
+  },
+  async getMyReservations(){
+    await delay(140);
+    return [
+      { id:"br1", book:BOOKS[7], reservedDate:"2026-06-30", pickupBy:"2026-07-10", position:1, libraryName:LIBRARIES[0].name },
+      { id:"br2", book:BOOKS[14], reservedDate:"2026-06-28", pickupBy:"2026-07-08", position:3, libraryName:LIBRARIES[1].name },
+    ];
+  },
+  async getMyHistory(){
+    await delay(160);
+    return [
+      { id:"h1", book:BOOKS[0], borrowedDate:"2026-04-02", returnedDate:"2026-04-19", rating:5 },
+      { id:"h2", book:BOOKS[3], borrowedDate:"2026-03-10", returnedDate:"2026-03-30", rating:4 },
+      { id:"h3", book:BOOKS[8], borrowedDate:"2026-02-14", returnedDate:"2026-03-01", rating:4 },
+      { id:"h4", book:BOOKS[13], borrowedDate:"2026-01-08", returnedDate:"2026-01-26", rating:3 },
+      { id:"h5", book:BOOKS[17], borrowedDate:"2025-12-01", returnedDate:"2025-12-18", rating:5 },
+    ];
+  },
+  async getMyStats(){
+    await delay(140);
+    return {
+      totalBorrowed: 47,
+      thisYear: 12,
+      currentStreakDays: 42,
+      favoriteGenre: "Fiction",
+      pagesRead: 8420,
+      avgRating: 4.3,
+      monthly: [3,4,2,5,3,6,4,2,5,4,3,6], // last 12 months
+      byGenre: [
+        { name:"Fiction", count:18 },
+        { name:"Mystery", count:9 },
+        { name:"Sci-Fi", count:7 },
+        { name:"Fantasy", count:6 },
+        { name:"Biography", count:4 },
+        { name:"Poetry", count:3 },
+      ],
+    };
+  },
+  async getMyShelves(){
+    await delay(150);
+    const s = JSON.parse(localStorage.getItem("lumen_shelves")||"null");
+    if(s) return s;
+    const seed = [
+      { id:"sh1", name:"Favorites", icon:"★", bookIds:[BOOKS[0].id, BOOKS[3].id, BOOKS[8].id] },
+      { id:"sh2", name:"Want to Read", icon:"🔖", bookIds:[BOOKS[6].id, BOOKS[9].id, BOOKS[12].id, BOOKS[15].id] },
+      { id:"sh3", name:"Summer Reading", icon:"☀", bookIds:[BOOKS[1].id, BOOKS[14].id] },
+    ];
+    localStorage.setItem("lumen_shelves", JSON.stringify(seed));
+    return seed;
+  },
+  async saveMyShelves(shelves){ await delay(120); localStorage.setItem("lumen_shelves", JSON.stringify(shelves)); return {ok:true}; },
+  async getMyRoomReservations(){
+    await delay(140);
+    return [
+      { id:"rr1", room:ROOMS[1], date:"2026-07-08", start:"14:00", end:"16:00", status:"upcoming" },
+      { id:"rr2", room:ROOMS[4], date:"2026-07-12", start:"10:00", end:"11:30", status:"upcoming" },
+      { id:"rr3", room:ROOMS[0], date:"2026-06-20", start:"09:00", end:"11:00", status:"completed" },
+      { id:"rr4", room:ROOMS[7], date:"2026-06-11", start:"15:00", end:"17:00", status:"cancelled" },
+    ];
+  },
+  async cancelRoomReservation(_id){ await delay(200); return {ok:true}; },
+  async getMyPayments(){
+    await delay(150);
+    return {
+      balance: 12.50,
+      transactions: [
+        { id:"t1", date:"2026-06-25", type:"Late fee",       description:"'The Auburn Room' — 4 days overdue", amount:-3.50, status:"unpaid" },
+        { id:"t2", date:"2026-06-20", type:"Membership",     description:"Annual renewal",                    amount:-20.00, status:"paid" },
+        { id:"t3", date:"2026-06-20", type:"Payment",        description:"Visa ending 4021",                   amount:20.00,  status:"paid" },
+        { id:"t4", date:"2026-05-14", type:"Room booking",   description:"Media Lab 1C — 2h",                 amount:-9.00,  status:"paid" },
+        { id:"t5", date:"2026-05-14", type:"Payment",        description:"Visa ending 4021",                   amount:9.00,   status:"paid" },
+        { id:"t6", date:"2026-04-01", type:"Late fee",       description:"'Iron Season' — 2 days overdue",   amount:-1.50,  status:"paid" },
+      ],
+    };
+  },
+  async payBalance(_amt){ await delay(300); return {ok:true}; },
 };
