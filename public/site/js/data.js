@@ -304,3 +304,106 @@ window.api = {
   },
   async payBalance(_amt){ await delay(300); return {ok:true}; },
 };
+
+// ============ ADMIN / LIBRARIAN MOCK DATA ============
+const LIBRARIANS = [
+  { id:"lr1", name:"Isabelle Chen",  email:"isabelle@lumen.lib", phoneNumber:"+1 415 555 0210", isBlocked:false, isActive:true,  libraryId:"lib-1", salary:3200, salaryStatus:"Paid" },
+  { id:"lr2", name:"Marcus Ade",     email:"marcus@lumen.lib",   phoneNumber:"+1 415 555 0211", isBlocked:false, isActive:true,  libraryId:"lib-2", salary:3100, salaryStatus:"Pending Approval" },
+  { id:"lr3", name:"Priya Mahal",    email:"priya@lumen.lib",    phoneNumber:"+1 415 555 0212", isBlocked:false, isActive:true,  libraryId:"lib-3", salary:3050, salaryStatus:"Approved" },
+  { id:"lr4", name:"Ren Iwasaki",    email:"ren@lumen.lib",      phoneNumber:"+1 415 555 0213", isBlocked:false, isActive:false, libraryId:"lib-4", salary:2900, salaryStatus:"Paid" },
+  { id:"lr5", name:"Kofi Mensah",    email:"kofi@lumen.lib",     phoneNumber:"+1 415 555 0214", isBlocked:true,  isActive:false, libraryId:"lib-1", salary:3000, salaryStatus:"Pending Approval" },
+];
+
+const MEMBERS = [
+  { id:"m1", fullName:"Nina Rojas",    email:"nina@example.com",   phoneNumber:"+1 555 0101", libraryId:"lib-1", balance:12.50, loan:2, isSubscribed:true,  role:"Member" },
+  { id:"m2", fullName:"David Kimura",  email:"david@example.com",  phoneNumber:"+1 555 0102", libraryId:"lib-2", balance:0,     loan:1, isSubscribed:false, role:"Member" },
+  { id:"m3", fullName:"Priya Sundar",  email:"priyas@example.com", phoneNumber:"+1 555 0103", libraryId:"lib-1", balance:3.50,  loan:0, isSubscribed:true,  role:"Member" },
+  { id:"m4", fullName:"Aaron Levi",    email:"aaron@example.com",  phoneNumber:"+1 555 0104", libraryId:"lib-3", balance:0,     loan:3, isSubscribed:true,  role:"Member" },
+  { id:"m5", fullName:"Sofia Rivera",  email:"sofia@example.com",  phoneNumber:"+1 555 0105", libraryId:"lib-4", balance:8.00,  loan:1, isSubscribed:false, role:"Member" },
+  { id:"m6", fullName:"Tomas Novak",   email:"tomas@example.com",  phoneNumber:"+1 555 0106", libraryId:"lib-2", balance:0,     loan:0, isSubscribed:true,  role:"Member" },
+];
+
+const ROOM_RESERVATIONS = ROOMS.slice(0, 10).map((r, i) => ({
+  id:`res${i+1}`, studyRoomId:r.id, roomName:r.name, libraryName:r.libraryName,
+  userId:MEMBERS[i % MEMBERS.length].id, userName:MEMBERS[i % MEMBERS.length].fullName,
+  reservationDate:`2026-07-${String((i%20)+3).padStart(2,'0')}`,
+  startTime:`${9+(i%8)}:00`, endTime:`${10+(i%8)}:30`,
+  status: ["Pending","Confirmed","Confirmed","Cancelled","Pending"][i%5],
+}));
+
+const BORROWINGS = BOOKS.slice(0, 14).map((b, i) => {
+  const statuses = ["Pending","Approved","Returned","Overdue","Approved","Returned"];
+  const st = statuses[i%statuses.length];
+  return {
+    id:`bor${i+1}`, bookId:b.id, bookTitle:b.title, libraryName:b.libraryName,
+    userId:MEMBERS[i % MEMBERS.length].id, userName:MEMBERS[i % MEMBERS.length].fullName,
+    borrowedDate:`2026-06-${String((i%25)+1).padStart(2,'0')}`,
+    dueDate:`2026-07-${String((i%25)+1).padStart(2,'0')}`,
+    returnedDate: st==="Returned" ? `2026-07-${String((i%20)+2).padStart(2,'0')}` : null,
+    isReturned: st==="Returned",
+    status: st,
+    fineAmount: st==="Overdue" ? (i%3+1)*1.5 : 0,
+  };
+});
+
+const SALARY_PAYMENTS = [
+  { id:"sp1", librarianId:"lr1", librarianName:"Isabelle Chen", date:"2026-06-30", amount:3200, method:"Visa ****4021", status:"Paid" },
+  { id:"sp2", librarianId:"lr3", librarianName:"Priya Mahal",   date:"2026-06-30", amount:3050, method:"MC ****1180",   status:"Paid" },
+  { id:"sp3", librarianId:"lr4", librarianName:"Ren Iwasaki",   date:"2026-06-30", amount:2900, method:"Visa ****9910", status:"Paid" },
+  { id:"sp4", librarianId:"lr1", librarianName:"Isabelle Chen", date:"2026-05-31", amount:3200, method:"Visa ****4021", status:"Paid" },
+  { id:"sp5", librarianId:"lr2", librarianName:"Marcus Ade",    date:"2026-05-31", amount:3100, method:"Visa ****2233", status:"Paid" },
+  { id:"sp6", librarianId:"lr3", librarianName:"Priya Mahal",   date:"2026-05-31", amount:3050, method:"MC ****1180",   status:"Paid" },
+];
+
+Object.assign(window.api, {
+  async getAdminStats(){
+    await delay(150);
+    return {
+      totalReservations: 128,
+      mostReservedGenre: "Fiction",
+      totalPayments: 14820.50,
+      activeLibraries: LIBRARIES.length,
+      activeMembers: MEMBERS.length + 214,
+      totalBooks: BOOKS.length + 1240,
+      pendingBorrows: BORROWINGS.filter(b=>b.status==="Pending").length,
+      overdueBorrows: BORROWINGS.filter(b=>b.status==="Overdue").length,
+      monthly: [22,31,28,35,40,38,44,41,48,52,49,58],
+    };
+  },
+  async getLibrarians(){ await delay(140); return [...LIBRARIANS]; },
+  async saveLibrarian(rec){ await delay(180); const i = LIBRARIANS.findIndex(x=>x.id===rec.id); if(i>=0) LIBRARIANS[i]=rec; else LIBRARIANS.push({...rec,id:`lr${Date.now()}`}); return {ok:true}; },
+  async deleteLibrarian(id){ await delay(120); const i=LIBRARIANS.findIndex(x=>x.id===id); if(i>=0) LIBRARIANS.splice(i,1); return {ok:true}; },
+  async approveLibrarianPayout(id){ await delay(120); const l=LIBRARIANS.find(x=>x.id===id); if(l) l.salaryStatus="Approved"; return {ok:true}; },
+
+  async saveLibrary(rec){ await delay(150); const i=LIBRARIES.findIndex(x=>x.id===rec.id); if(i>=0) LIBRARIES[i]=rec; else LIBRARIES.push({...rec,id:`lib-${Date.now()}`}); return {ok:true}; },
+  async deleteLibrary(id){ await delay(120); const i=LIBRARIES.findIndex(x=>x.id===id); if(i>=0) LIBRARIES.splice(i,1); return {ok:true}; },
+
+  async saveBook(rec){ await delay(160); const i=BOOKS.findIndex(x=>x.id===rec.id); if(i>=0) BOOKS[i]={...BOOKS[i],...rec}; else BOOKS.push({...rec,id:`b${Date.now()}`,rating:0,isNew:true,inStock:true,additionalImageUrls:[]}); return {ok:true}; },
+  async deleteBook(id){ await delay(120); const i=BOOKS.findIndex(x=>x.id===id); if(i>=0) BOOKS.splice(i,1); return {ok:true}; },
+
+  async saveAuthor(rec){ await delay(120); const i=AUTHORS.findIndex(x=>x.id===rec.id); if(i>=0) AUTHORS[i]=rec; else AUTHORS.push({...rec,id:`a${Date.now()}`}); return {ok:true}; },
+  async deleteAuthor(id){ await delay(100); const i=AUTHORS.findIndex(x=>x.id===id); if(i>=0) AUTHORS.splice(i,1); return {ok:true}; },
+  async saveGenre(rec){ await delay(120); const i=GENRES.findIndex(x=>x.id===rec.id); if(i>=0) GENRES[i]=rec; else GENRES.push({...rec,id:`g${Date.now()}`}); return {ok:true}; },
+  async deleteGenre(id){ await delay(100); const i=GENRES.findIndex(x=>x.id===id); if(i>=0) GENRES.splice(i,1); return {ok:true}; },
+  async saveLanguage(rec){ await delay(120); const i=LANGUAGES.findIndex(x=>x.id===rec.id); if(i>=0) LANGUAGES[i]=rec; else LANGUAGES.push({...rec,id:`l${Date.now()}`}); return {ok:true}; },
+  async deleteLanguage(id){ await delay(100); const i=LANGUAGES.findIndex(x=>x.id===id); if(i>=0) LANGUAGES.splice(i,1); return {ok:true}; },
+
+  async saveRoom(rec){ await delay(140); const i=ROOMS.findIndex(x=>x.id===rec.id); if(i>=0) ROOMS[i]={...ROOMS[i],...rec}; else ROOMS.push({...rec,id:`r${Date.now()}`,amenities:rec.amenities||[]}); return {ok:true}; },
+  async deleteRoom(id){ await delay(120); const i=ROOMS.findIndex(x=>x.id===id); if(i>=0) ROOMS.splice(i,1); return {ok:true}; },
+
+  async getAllRoomReservations(){ await delay(150); return [...ROOM_RESERVATIONS]; },
+  async setRoomReservationStatus(id, status){ await delay(120); const r=ROOM_RESERVATIONS.find(x=>x.id===id); if(r) r.status=status; return {ok:true}; },
+
+  async getAllBorrowings(){ await delay(160); return [...BORROWINGS]; },
+  async setBorrowingStatus(id, status){ await delay(120); const b=BORROWINGS.find(x=>x.id===id); if(b){ b.status=status; if(status==="Returned"){b.isReturned=true;b.returnedDate=new Date().toISOString().slice(0,10);} } return {ok:true}; },
+
+  async getSalaryPayments(){ await delay(140); return [...SALARY_PAYMENTS]; },
+
+  async saveAnnouncement(rec){ await delay(140); const i=ANNOUNCEMENTS.findIndex(x=>x.id===rec.id); if(i>=0) ANNOUNCEMENTS[i]=rec; else ANNOUNCEMENTS.unshift({...rec,id:`an${Date.now()}`}); return {ok:true}; },
+  async deleteAnnouncement(id){ await delay(100); const i=ANNOUNCEMENTS.findIndex(x=>x.id===id); if(i>=0) ANNOUNCEMENTS.splice(i,1); return {ok:true}; },
+
+  async saveGalleryItem(rec){ await delay(120); GALLERY_IMGS.push(rec.url); return {ok:true}; },
+  async deleteGalleryItem(id){ await delay(100); const idx = parseInt(id.replace('gal',''),10)-1; if(idx>=0 && idx<GALLERY_IMGS.length) GALLERY_IMGS.splice(idx,1); return {ok:true}; },
+
+  async getMembers(){ await delay(140); return [...MEMBERS]; },
+});
