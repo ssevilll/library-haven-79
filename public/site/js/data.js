@@ -406,4 +406,76 @@ Object.assign(window.api, {
   async deleteGalleryItem(id){ await delay(100); const idx = parseInt(id.replace('gal',''),10)-1; if(idx>=0 && idx<GALLERY_IMGS.length) GALLERY_IMGS.splice(idx,1); return {ok:true}; },
 
   async getMembers(){ await delay(140); return [...MEMBERS]; },
+
+  // ---- Librarian panel ----
+  currentLibrarian(){
+    try { const s = JSON.parse(localStorage.getItem("lumen_librarian")||"null"); if(s) return s; } catch{}
+    // default seed: first librarian (Isabelle @ Central)
+    const l = LIBRARIANS[0];
+    localStorage.setItem("lumen_librarian", JSON.stringify(l));
+    return l;
+  },
+  async getLibrarianStats(libraryId){
+    await delay(150);
+    const reservations = ROOM_RESERVATIONS.filter(r=>{
+      const room = ROOMS.find(x=>x.id===r.studyRoomId);
+      return room && room.libraryId===libraryId;
+    });
+    const borrows = BORROWINGS.filter(b => BOOKS.find(x=>x.id===b.bookId)?.libraryId===libraryId);
+    const books   = BOOKS.filter(b=>b.libraryId===libraryId);
+    const members = MEMBERS.filter(m=>m.libraryId===libraryId);
+    const genreCounts = {};
+    borrows.forEach(b=>{
+      const bk = BOOKS.find(x=>x.id===b.bookId);
+      (bk?.genreNames||[]).forEach(g=> genreCounts[g]=(genreCounts[g]||0)+1);
+    });
+    const byGenre = Object.entries(genreCounts).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count);
+    return {
+      totalBooks: books.length,
+      totalMembers: members.length,
+      pendingBorrows: borrows.filter(b=>b.status==="Pending").length,
+      overdueBorrows: borrows.filter(b=>b.status==="Overdue").length,
+      pendingReservations: reservations.filter(r=>r.status==="Pending").length,
+      totalReservations: reservations.length,
+      totalBorrows: borrows.length,
+      finesCollected: borrows.reduce((s,b)=>s+(b.fineAmount||0),0),
+      monthly: [12,18,15,22,19,25,28,24,30,27,32,35],
+      byGenre,
+      statusBreakdown: {
+        Pending: borrows.filter(b=>b.status==="Pending").length,
+        Approved: borrows.filter(b=>b.status==="Approved").length,
+        Returned: borrows.filter(b=>b.status==="Returned").length,
+        Overdue: borrows.filter(b=>b.status==="Overdue").length,
+      },
+    };
+  },
+  async getLibrarianBorrowings(libraryId){
+    await delay(150);
+    return BORROWINGS.filter(b => BOOKS.find(x=>x.id===b.bookId)?.libraryId===libraryId).map(b=>({...b}));
+  },
+  async getLibrarianReservations(libraryId){
+    await delay(150);
+    return ROOM_RESERVATIONS.filter(r => ROOMS.find(x=>x.id===r.studyRoomId)?.libraryId===libraryId).map(r=>({...r}));
+  },
+  async getLibrarianBooks(libraryId){ await delay(140); return BOOKS.filter(b=>b.libraryId===libraryId).map(b=>({...b})); },
+  async getLibrarianMembers(libraryId){ await delay(140); return MEMBERS.filter(m=>m.libraryId===libraryId).map(m=>({...m})); },
+  async getLibrarianRooms(libraryId){ await delay(120); return ROOMS.filter(r=>r.libraryId===libraryId).map(r=>({...r})); },
+  async getMySalaryInfo(librarianId){
+    await delay(120);
+    const l = LIBRARIANS.find(x=>x.id===librarianId);
+    const history = SALARY_PAYMENTS.filter(p=>p.librarianId===librarianId);
+    return { librarian:l, history };
+  },
+  async checkoutSalary(librarianId, payload){
+    await delay(400);
+    const l = LIBRARIANS.find(x=>x.id===librarianId); if(!l) return {ok:false};
+    const rec = {
+      id:`sp${Date.now()}`, librarianId:l.id, librarianName:l.name,
+      date:new Date().toISOString().slice(0,10), amount:l.salary,
+      method: payload.method || "Visa ****0000", status:"Paid"
+    };
+    SALARY_PAYMENTS.unshift(rec);
+    l.salaryStatus = "Paid";
+    return { ok:true, payment:rec };
+  },
 });
