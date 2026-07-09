@@ -21,8 +21,9 @@
         <div class="col-6"><label class="form-label">Password</label><input class="form-control" type="password" name="pw" required minlength="6"/></div>
         <div class="col-6"><label class="form-label">Confirm</label><input class="form-control" type="password" name="pw2" required minlength="6"/></div>
       </div>
-      <div class="mb-3"><label class="form-label">Membership library</label>
-        <select class="form-select" name="libraryId" id="lib-select" required></select>
+      <div class="form-check mb-3">
+        <input type="checkbox" class="form-check-input" id="news" name="news" checked/>
+        <label class="form-check-label" for="news">Subscribe to our newsletter</label>
       </div>
       <div class="form-check mb-3">
         <input type="checkbox" class="form-check-input" id="news" name="news" checked/>
@@ -37,13 +38,9 @@
 <script src="/site/js/data.js"></script>
 <script src="/site/js/common.js"></script>
 <script>
-(async()=>{
-  const libs = await window.api.getLibraries();
-  document.getElementById("lib-select").innerHTML = libs.map(l=>`<option value="${l.id}">${l.name}</option>`).join("");
-})();
 async function doRegister(form){
   if(form.pw.value !== form.pw2.value){ toast("Passwords do not match"); return; }
-  await window.api.register({ fullName:form.fullName.value, email:form.email.value, libraryId:form.libraryId.value, isSubscribed:form.news.checked });
+  await window.api.register({ fullName:form.fullName.value, email:form.email.value, isSubscribed:form.news.checked });
   location.href = "/site/verify.html";
 }
 </script>

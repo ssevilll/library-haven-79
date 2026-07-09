@@ -50,9 +50,15 @@
     "Currently borrowed by you": '<span class="avail" style="background:var(--accent-50);color:var(--accent-600)">Currently borrowed by you</span>',
   }[userStatus];
 
+  const addl = book.additionalImageUrls||[];
   document.getElementById("book-mount").innerHTML = `
   <div class="row g-5">
-    <div class="col-md-4 text-center"><div class="book-cover-lg mx-auto"><img src="${book.mainImageUrl}" alt=""/></div></div>
+    <div class="col-md-4 text-center">
+      <div class="book-cover-lg mx-auto zoom-cover"><img id="mainCover" src="${book.mainImageUrl}" alt=""/></div>
+      ${addl.length ? `<div class="thumb-row mt-3">${
+        [book.mainImageUrl, ...addl].map((u,i)=>`<button type="button" class="thumb ${i===0?'active':''}" data-src="${u}"><img src="${u}" alt=""/></button>`).join("")
+      }</div>`:""}
+    </div>
     <div class="col-md-8">
       <div class="eyebrow">${book.libraryName}</div>
       <h1 class="mt-2">${book.title}</h1>
@@ -71,6 +77,11 @@
       </div>
     </div>
   </div>`;
+  document.querySelectorAll(".thumb").forEach(t => t.addEventListener("click", () => {
+    document.querySelectorAll(".thumb").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+    document.getElementById("mainCover").src = t.dataset.src;
+  }));
 
   // reviews
   const reviews = await window.api.getReviewsForBook(book.id);

@@ -117,7 +117,7 @@ function makeBooks(){
       description:`${title} is a stirring, quietly virtuosic ${gNames[0]?.toLowerCase()||"fiction"} work that lingers well past the last page. A luminous read for anyone who loves ${gNames.slice(0,2).join(" and ").toLowerCase()||"good storytelling"}.`,
       publishedDate:`${2015 + (i % 10)}-0${(i%9)+1}-14`,
       mainImageUrl: COVERS[i % COVERS.length],
-      additionalImageUrls: [],
+      additionalImageUrls: [COVERS[(i+1)%COVERS.length], COVERS[(i+2)%COVERS.length], COVERS[(i+3)%COVERS.length]],
       pageCount: 180 + (i*17) % 380,
       rating: Math.round((3.5 + ((i*13)%15)/10)*10)/10,
       isNew: i < 4,

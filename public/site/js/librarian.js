@@ -198,13 +198,12 @@ async function paneRooms(){
   return html;
 }
 
-// ---- BORROWINGS (status updates) ----
+// ---- BORROWINGS (status updates via modal) ----
 async function paneBorrowings(){
   const rows = await window.api.getLibrarianBorrowings(state.libraryId);
   const filtered = filterRows(rows,"borrowings",["bookTitle","userName","status"]);
   const sorted = sortRows(filtered,"borrowings","borrowedDate");
-  const statusSel = r=>`<select class="form-select form-select-sm" data-set-status="${r.id}" style="min-width:130px">${["Pending","Approved","Returned","Overdue"].map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join("")}</select>`;
-  sorted.forEach(r=> r.__actions = statusSel(r));
+  sorted.forEach(r=> r.__actions = `<button class="btn btn-outline-accent btn-sm" data-edit-bor="${r.id}">Edit</button>`);
   const cols = [
     {key:"bookTitle",label:"Book"},
     {key:"userName",label:"Member"},
@@ -218,15 +217,21 @@ async function paneBorrowings(){
     + `<div class="admin-card">${tableShell(cols,sorted,{pane:"borrowings"})}</div>`;
   setTimeout(()=>{
     wireToolbar("borrowings"); wireSort("borrowings","borrowedDate");
-    $$("[data-set-status]").forEach(s=>s.addEventListener("change", async e=>{
-      await window.api.setBorrowingStatus(s.dataset.setStatus, e.target.value);
-      toast("Status updated"); renderPane("borrowings");
+    $$("[data-edit-bor]").forEach(b=>b.addEventListener("click",()=>{
+      const r = rows.find(x=>x.id===b.dataset.editBor);
+      openStatusEditor(`Borrowing — ${r.bookTitle}`, r.status, ["Pending","Approved","Returned","Overdue"], async(v)=>{
+        await window.api.setBorrowingStatus(r.id, v); toast("Status updated"); renderPane("borrowings");
+      });
     }));
   },0);
   return html;
 }
+function openStatusEditor(title, current, options, onSave){
+  const body = field("Status",`<select class="form-select" name="status">${options.map(o=>`<option ${o===current?'selected':''}>${o}</option>`).join("")}</select>`);
+  openForm(title, body, async()=>{ const o=formToObj(); await onSave(o.status); });
+}
 
-// ---- RESERVATIONS (status updates) ----
+// ---- RESERVATIONS (status updates, no status column) ----
 async function paneReservations(){
   const rows = await window.api.getLibrarianReservations(state.libraryId);
   const filtered = filterRows(rows,"reservations",["roomName","userName","status"]);
@@ -239,7 +244,6 @@ async function paneReservations(){
     {key:"reservationDate",label:"Date"},
     {key:"startTime",label:"Start"},
     {key:"endTime",label:"End"},
-    {key:"status",label:"Status",render:r=>statusPill(r.status)},
   ];
   const html = paneHeader("Room Reservations","Approve or cancel bookings at your branch", toolbar("reservations"))
     + `<div class="admin-card">${tableShell(cols,sorted,{pane:"reservations"})}</div>`;
@@ -290,14 +294,16 @@ async function paneSalary(){
   setTimeout(()=>{
     $("#btnCheckout")?.addEventListener("click", ()=>{
       const body = field("Amount",`<input class="form-control" value="${fmtMoney(l.salary)}" disabled/>`)
-        + field("Payout method",`<select class="form-select" name="method">
-            <option>Visa ****4021</option><option>MasterCard ****1180</option><option>Bank transfer</option>
-          </select>`)
-        + field("Notes (optional)",`<input class="form-control" name="notes" placeholder="e.g. June 2026 salary"/>`);
-      openForm("Checkout salary", body, async()=>{
+        + field("Cardholder name",`<input class="form-control" name="cardName" placeholder="Name on card" value="${l.name}"/>`)
+        + field("Card number",`<input class="form-control" name="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19"/>`)
+        + `<div class="row"><div class="col-6">${field("Expiry",`<input class="form-control" name="cardExp" placeholder="MM/YY" maxlength="5"/>`)}</div>
+           <div class="col-6">${field("CVV",`<input class="form-control" name="cardCvv" placeholder="123" maxlength="4"/>`)}</div></div>`;
+      openForm("Checkout salary — enter card details", body, async()=>{
         const o = formToObj();
-        const res = await window.api.checkoutSalary(state.me.id, { method:o.method });
-        if(res.ok){ toast(`Paid ${fmtMoney(res.payment.amount)}`); renderPane("salary"); }
+        if(!o.cardNumber || !o.cardExp || !o.cardCvv){ toast("Please fill in card details"); return false; }
+        const last4 = o.cardNumber.replace(/\D/g,"").slice(-4) || "0000";
+        const res = await window.api.checkoutSalary(state.me.id, { method:`Visa ****${last4}` });
+        if(res.ok){ toast(`Paid ${fmtMoney(res.payment.amount)} to your card`); renderPane("salary"); }
       });
     });
   },0);
