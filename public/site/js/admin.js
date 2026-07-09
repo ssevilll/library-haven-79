@@ -271,27 +271,54 @@ async function paneBooks(){
   return html;
 }
 function editBook(rec){
-  const r = rec || { id:"", title:"", description:"", publishedDate:"2026-01-01", mainImageUrl:"", pageCount:200, authorId:state.authors[0]?.id, genreIds:[], libraryId:state.libraries[0]?.id, language:state.languages[0]?.name };
+  const r = rec || { id:"", title:"", description:"", publishedDate:"2026-01-01", mainImageUrl:"", additionalImageUrls:[], pageCount:200, authorId:state.authors[0]?.id, genreIds:[], libraryId:state.libraries[0]?.id, languages:[state.languages[0]?.name] };
+  const langsCurrent = r.languages || (r.language ? [r.language] : []);
   const authors = state.authors.map(a=>`<option value="${a.id}" ${a.id===r.authorId?'selected':''}>${a.name}</option>`).join("");
   const genres = state.genres.map(g=>`<option value="${g.id}" ${(r.genreIds||[]).includes(g.id)?'selected':''}>${g.name}</option>`).join("");
-  const langs = state.languages.map(l=>`<option ${l.name===r.language?'selected':''}>${l.name}</option>`).join("");
+  const langs = state.languages.map(l=>`<option value="${l.name}" ${langsCurrent.includes(l.name)?'selected':''}>${l.name}</option>`).join("");
+  const mainPreview = r.mainImageUrl ? `<img src="${r.mainImageUrl}" id="mainPrev" style="width:80px;height:110px;object-fit:cover;border-radius:6px;margin-top:.5rem"/>` : `<img id="mainPrev" style="display:none;width:80px;height:110px;object-fit:cover;border-radius:6px;margin-top:.5rem"/>`;
+  const addlPreview = (r.additionalImageUrls||[]).map(u=>`<img src="${u}" style="width:60px;height:80px;object-fit:cover;border-radius:6px"/>`).join("");
   const body = field("Title",`<input class="form-control" name="title" value="${r.title}"/>`)
     + field("Description",`<textarea class="form-control" name="description" rows="3">${r.description||""}</textarea>`)
     + `<div class="row"><div class="col-md-6">${field("Published",`<input type="date" class="form-control" name="publishedDate" value="${r.publishedDate}"/>`)}</div>
        <div class="col-md-6">${field("Pages",`<input type="number" class="form-control" name="pageCount" value="${r.pageCount}"/>`)}</div></div>`
-    + field("Cover Image URL",`<input class="form-control" name="mainImageUrl" value="${r.mainImageUrl}"/>`)
+    + field("Cover image (file)",`<input type="file" accept="image/*" class="form-control" id="mainImgFile"/>${mainPreview}`)
+    + field("Additional photos (multiple)",`<input type="file" accept="image/*" multiple class="form-control" id="addlImgFiles"/><div id="addlPrev" class="d-flex gap-2 flex-wrap mt-2">${addlPreview}</div>`)
     + `<div class="row"><div class="col-md-6">${field("Author",`<select class="form-select" name="authorId">${authors}</select>`)}</div>
        <div class="col-md-6">${field("Library", libSelect("libraryId", r.libraryId))}</div></div>`
-    + `<div class="row"><div class="col-md-6">${field("Genres (hold ⌘/Ctrl)",`<select class="form-select" name="genreIds" multiple size="4">${genres}</select>`)}</div>
-       <div class="col-md-6">${field("Language",`<select class="form-select" name="language">${langs}</select>`)}</div></div>`;
+    + `<div class="row"><div class="col-md-6">${field("Genres (hold ⌘/Ctrl)",`<select class="form-select" name="genreIds" multiple size="5">${genres}</select>`)}</div>
+       <div class="col-md-6">${field("Languages (hold ⌘/Ctrl for multiple)",`<select class="form-select" name="languages" multiple size="5">${langs}</select>`)}</div></div>`;
   openForm(rec?"Edit Book":"Add Book", body, async()=>{
     const obj = formToObj();
+    // wire file readers
+    const mainFile = document.getElementById("mainImgFile")?.files?.[0];
+    if(mainFile) obj.mainImageUrl = await fileToDataUrl(mainFile);
+    else obj.mainImageUrl = r.mainImageUrl;
+    const addlFiles = Array.from(document.getElementById("addlImgFiles")?.files||[]);
+    obj.additionalImageUrls = addlFiles.length ? await Promise.all(addlFiles.map(fileToDataUrl)) : (r.additionalImageUrls||[]);
+    obj.language = (obj.languages||[])[0] || "";
     obj.authorName = state.authors.find(a=>a.id===obj.authorId)?.name;
     obj.libraryName = state.libraries.find(l=>l.id===obj.libraryId)?.name;
     obj.genreNames = (obj.genreIds||[]).map(id=>state.genres.find(g=>g.id===id)?.name).filter(Boolean);
     await window.api.saveBook({ id:r.id, ...obj });
     toast(rec?"Book updated":"Book added"); renderPane("books");
   });
+  // live preview
+  setTimeout(()=>{
+    document.getElementById("mainImgFile")?.addEventListener("change", async e=>{
+      const f = e.target.files[0]; if(!f) return;
+      const url = await fileToDataUrl(f);
+      const img = document.getElementById("mainPrev"); img.src = url; img.style.display="";
+    });
+    document.getElementById("addlImgFiles")?.addEventListener("change", async e=>{
+      const files = Array.from(e.target.files||[]);
+      const urls = await Promise.all(files.map(fileToDataUrl));
+      document.getElementById("addlPrev").innerHTML = urls.map(u=>`<img src="${u}" style="width:60px;height:80px;object-fit:cover;border-radius:6px"/>`).join("");
+    });
+  },50);
+}
+function fileToDataUrl(file){
+  return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
 }
 
 // ---------- Simple entity panes: authors/genres/languages ----------
@@ -342,16 +369,17 @@ async function paneRooms(){
     + `<div class="admin-card">${tableShell(cols, sorted, {pane:"rooms"})}</div>`;
   const editOne = (rec)=>{
     const r = rec || {id:"",name:"",capacity:4,isAvailable:true,libraryId:state.libraries[0]?.id,amenities:[]};
+    const AMEN = ["Wi-Fi","Whiteboard","TV Screen","Power","Recording","Projector","Coffee","Silent Zone"];
+    const amenBoxes = `<div class="amenity-list">${AMEN.map(a=>`<label><input type="checkbox" name="amenity" value="${a}" ${(r.amenities||[]).includes(a)?'checked':''}/> ${a}</label>`).join("")}</div>`;
     const body = field("Name",`<input class="form-control" name="name" value="${r.name}"/>`)
       + `<div class="row"><div class="col-md-6">${field("Capacity",`<input type="number" class="form-control" name="capacity" value="${r.capacity}"/>`)}</div>
          <div class="col-md-6">${field("Library", libSelect("libraryId", r.libraryId))}</div></div>`
-      + field("Amenities (comma-separated)",`<input class="form-control" name="amenitiesRaw" value="${(r.amenities||[]).join(', ')}"/>`)
+      + field("Amenities (choose all that apply)", amenBoxes)
       + field("",`<div class="form-check"><input type="checkbox" class="form-check-input" name="isAvailable" ${r.isAvailable?'checked':''}/><label class="form-check-label">Available for booking</label></div>`);
     openForm(rec?"Edit Room":"Add Room", body, async()=>{
       const obj = formToObj();
-      obj.amenities = (obj.amenitiesRaw||"").split(",").map(s=>s.trim()).filter(Boolean);
+      obj.amenities = Array.from(document.querySelectorAll('#formModalBody input[name="amenity"]:checked')).map(c=>c.value);
       obj.libraryName = state.libraries.find(l=>l.id===obj.libraryId)?.name;
-      delete obj.amenitiesRaw;
       await window.api.saveRoom({id:r.id,...obj}); toast("Saved"); renderPane("rooms");
     });
   };
@@ -372,8 +400,7 @@ async function paneReservations(){
   const rows = await window.api.getAllRoomReservations();
   const filtered = filterRows(rows, "reservations", ["roomName","userName","libraryName","status"]);
   const sorted = sortRows(filtered, "reservations", "reservationDate");
-  const statusSelect = (r)=>`<select class="form-select form-select-sm" data-set-status="${r.id}" style="min-width:130px">${["Pending","Confirmed","Cancelled"].map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join("")}</select>`;
-  sorted.forEach(r => r.__actions = statusSelect(r));
+  sorted.forEach(r => r.__actions = `<button class="btn btn-outline-accent btn-sm" data-edit-res="${r.id}">Edit</button>`);
   const cols = [
     {key:"roomName", label:"Room"},
     {key:"libraryName", label:"Library"},
@@ -381,28 +408,33 @@ async function paneReservations(){
     {key:"reservationDate", label:"Date"},
     {key:"startTime", label:"Start"},
     {key:"endTime", label:"End"},
-    {key:"status", label:"Status", render:r=>statusPill(r.status)},
   ];
   const html = paneHeader("Room Reservations","Approve or cancel bookings", toolbar("reservations",""))
     + `<div class="admin-card">${tableShell(cols, sorted, {pane:"reservations"})}</div>`;
   setTimeout(()=>{
     wireToolbar("reservations",()=>renderPane("reservations"));
     wireSort("reservations","reservationDate",()=>renderPane("reservations"));
-    $$("[data-set-status]").forEach(s=>s.addEventListener("change", async e=>{
-      await window.api.setRoomReservationStatus(s.dataset.setStatus, e.target.value);
-      toast("Status updated"); renderPane("reservations");
+    $$("[data-edit-res]").forEach(b=>b.addEventListener("click", ()=>{
+      const r = rows.find(x=>x.id===b.dataset.editRes);
+      openStatusEditor(`Reservation — ${r.roomName}`, r.status, ["Pending","Confirmed","Cancelled"], async(v)=>{
+        await window.api.setRoomReservationStatus(r.id, v); toast("Status updated"); renderPane("reservations");
+      });
     }));
   },0);
   return html;
 }
+function openStatusEditor(title, current, options, onSave){
+  const body = field("Status",`<select class="form-select" name="status">${options.map(o=>`<option ${o===current?'selected':''}>${o}</option>`).join("")}</select>`);
+  openForm(title, body, async()=>{ const o=formToObj(); await onSave(o.status); });
+}
 
+// ---------- ROOM RESERVATIONS ----------
 // ---------- BORROWINGS ----------
 async function paneBorrowings(){
   const rows = await window.api.getAllBorrowings();
   const filtered = filterRows(rows, "borrowings", ["bookTitle","userName","libraryName","status"]);
   const sorted = sortRows(filtered, "borrowings", "borrowedDate");
-  const statusSelect = (r)=>`<select class="form-select form-select-sm" data-set-status="${r.id}" style="min-width:130px">${["Pending","Approved","Returned","Overdue"].map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join("")}</select>`;
-  sorted.forEach(r => r.__actions = statusSelect(r));
+  sorted.forEach(r => r.__actions = `<button class="btn btn-outline-accent btn-sm" data-edit-bor="${r.id}">Edit</button>`);
   const cols = [
     {key:"bookTitle", label:"Book"},
     {key:"userName", label:"Member"},
@@ -418,9 +450,11 @@ async function paneBorrowings(){
   setTimeout(()=>{
     wireToolbar("borrowings",()=>renderPane("borrowings"));
     wireSort("borrowings","borrowedDate",()=>renderPane("borrowings"));
-    $$("[data-set-status]").forEach(s=>s.addEventListener("change", async e=>{
-      await window.api.setBorrowingStatus(s.dataset.setStatus, e.target.value);
-      toast("Status updated"); renderPane("borrowings");
+    $$("[data-edit-bor]").forEach(b=>b.addEventListener("click",()=>{
+      const r = rows.find(x=>x.id===b.dataset.editBor);
+      openStatusEditor(`Borrowing — ${r.bookTitle}`, r.status, ["Pending","Approved","Returned","Overdue"], async(v)=>{
+        await window.api.setBorrowingStatus(r.id, v); toast("Status updated"); renderPane("borrowings");
+      });
     }));
   },0);
   return html;
@@ -429,21 +463,19 @@ async function paneBorrowings(){
 // ---------- LIBRARIAN PAYMENTS ----------
 async function panePayments(){
   const rows = await window.api.getSalaryPayments();
-  const filtered = filterRows(rows, "payments", ["librarianName","method","status"]);
+  const filtered = filterRows(rows, "payments", ["librarianName","status"]);
   const sorted = sortRows(filtered, "payments", "date");
-  sorted.forEach(r=> r.__actions = pill(r.status,"ok"));
   const cols = [
     {key:"librarianName", label:"Librarian"},
     {key:"date", label:"Date"},
     {key:"amount", label:"Amount", render:r=>fmtMoney(r.amount)},
-    {key:"method", label:"Method"},
     {key:"status", label:"Status", render:r=>statusPill(r.status)},
   ];
   const html = paneHeader("Librarian Payments","Salary payout history",
     `<div class="admin-toolbar">
        <input class="form-control form-control-sm" placeholder="Filter by librarian…" value="${state.search.payments||''}" id="tb-search-payments"/>
      </div>`)
-    + `<div class="admin-card">${tableShell(cols, sorted, {pane:"payments"})}</div>`;
+    + `<div class="admin-card">${tableShell(cols, sorted, {pane:"payments", actions:false})}</div>`;
   setTimeout(()=>{
     const s = $("#tb-search-payments"); s.addEventListener("input", e=>{ state.search.payments=e.target.value; renderPane("payments"); });
     wireSort("payments","date",()=>renderPane("payments"));
@@ -471,11 +503,12 @@ async function paneAnnouncements(){
     const r = rec || {id:"",title:"",content:"",announceDate:new Date().toISOString().slice(0,10),publisher:"Admin",isImportant:false};
     const body = field("Title",`<input class="form-control" name="title" value="${r.title}"/>`)
       + field("Content",`<textarea class="form-control" name="content" rows="4">${r.content}</textarea>`)
-      + `<div class="row"><div class="col-md-6">${field("Date",`<input type="date" class="form-control" name="announceDate" value="${r.announceDate}"/>`)}</div>
-         <div class="col-md-6">${field("Publisher",`<input class="form-control" name="publisher" value="${r.publisher}"/>`)}</div></div>`
+      + field("Publisher",`<input class="form-control" name="publisher" value="${r.publisher}"/>`)
       + field("",`<div class="form-check"><input type="checkbox" class="form-check-input" name="isImportant" ${r.isImportant?'checked':''}/><label class="form-check-label">Mark as important</label></div>`);
     openForm(rec?"Edit Announcement":"Add Announcement", body, async()=>{
-      const obj = formToObj(); await window.api.saveAnnouncement({id:r.id,...obj}); toast("Saved"); renderPane("announcements");
+      const obj = formToObj();
+      obj.announceDate = rec ? r.announceDate : new Date().toISOString().slice(0,10);
+      await window.api.saveAnnouncement({id:r.id,...obj}); toast("Saved"); renderPane("announcements");
     });
   };
   setTimeout(()=>{
@@ -508,8 +541,20 @@ async function paneGallery(){
     }</div></div>`;
   setTimeout(()=>{
     $("#galAdd").addEventListener("click", ()=>{
-      openForm("Add Gallery Image", field("Image URL",`<input class="form-control" name="url" placeholder="https://…"/>`),
-        async()=>{ const o=formToObj(); if(!o.url) return false; await window.api.saveGalleryItem(o); toast("Added"); renderPane("gallery"); });
+      openForm("Add Gallery Image",
+        field("Image file",`<input type="file" accept="image/*" class="form-control" id="galFile"/><img id="galPrev" style="display:none;width:120px;margin-top:.5rem;border-radius:8px"/>`),
+        async()=>{
+          const f = document.getElementById("galFile")?.files?.[0];
+          if(!f){ toast("Choose an image"); return false; }
+          const url = await fileToDataUrl(f);
+          await window.api.saveGalleryItem({url}); toast("Added"); renderPane("gallery");
+        });
+      setTimeout(()=>{
+        document.getElementById("galFile")?.addEventListener("change", async e=>{
+          const f=e.target.files[0]; if(!f) return;
+          const url=await fileToDataUrl(f); const p=document.getElementById("galPrev"); p.src=url; p.style.display="";
+        });
+      },50);
     });
     $$("[data-del]").forEach(b=>b.addEventListener("click",()=>{
       openConfirm("Delete this image?", async()=>{ await window.api.deleteGalleryItem(b.dataset.del); toast("Deleted"); renderPane("gallery"); });

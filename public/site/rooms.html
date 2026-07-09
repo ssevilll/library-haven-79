@@ -14,15 +14,18 @@
 <div class="container section-tight">
   <div class="eyebrow">Study Rooms</div>
   <h1 class="mt-1">Reserve a quiet corner.</h1>
-  <p class="text-muted-2">Group rooms, media labs, and single-desk study spaces.</p>
+  <p class="text-muted-2">Group rooms, media labs, and single-desk study spaces. All reservations are one hour long.</p>
 
   <div class="filter-panel mb-4" style="position:static">
     <div class="row g-3 align-items-end">
       <div class="col-md-3"><label class="form-label">Date</label><input type="date" class="form-control" id="f-date"/></div>
-      <div class="col-md-2"><label class="form-label">Duration (hrs)</label><input type="number" class="form-control" id="f-dur" min="1" max="8" value="2"/></div>
-      <div class="col-md-2"><label class="form-label">Min capacity</label><input type="number" class="form-control" id="f-cap" min="1" placeholder="Any"/></div>
-      <div class="col-md-3"><label class="form-label">Branch</label><select class="form-select" id="f-lib"><option value="">All branches</option></select></div>
+      <div class="col-md-3"><label class="form-label">Min capacity</label><input type="number" class="form-control" id="f-cap" min="1" placeholder="Any"/></div>
+      <div class="col-md-4"><label class="form-label">Branch</label><select class="form-select" id="f-lib"><option value="">All branches</option></select></div>
       <div class="col-md-2 d-flex align-items-end"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="f-avail"/><label class="form-check-label" for="f-avail">Available only</label></div></div>
+    </div>
+    <div class="mt-3">
+      <label class="form-label small fw-semibold">Amenities</label>
+      <div class="amenity-list" id="f-amen"></div>
     </div>
     <div class="mt-3 d-flex gap-2">
       <button class="btn btn-accent" onclick="refresh()">Apply</button>
@@ -34,24 +37,17 @@
 </div>
 
 <div class="modal fade" id="reserve-modal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header"><h5 class="modal-title" id="rv-title">Reserve room</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
-        <div class="mb-3"><label class="form-label">Date</label><input type="date" class="form-control" id="rv-date"/></div>
-        <div class="row g-2">
-          <div class="col-6"><label class="form-label">Start</label>
-            <select class="form-select" id="rv-start"></select>
-          </div>
-          <div class="col-6"><label class="form-label">End</label>
-            <select class="form-select" id="rv-end"></select>
-          </div>
-        </div>
-        <div class="alert alert-warning mt-3 small mb-0" id="rv-warn" style="display:none">This time slot conflicts with an existing reservation.</div>
+        <div class="mb-3" style="max-width:220px"><label class="form-label">Date</label><input type="date" class="form-control" id="rv-date"/></div>
+        <div class="mb-2 small text-muted-2">Pick an available one-hour slot:</div>
+        <div class="slot-grid" id="rv-slots"></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
-        <button class="btn btn-accent" onclick="confirmReserve()">Confirm reservation</button>
+        <button class="btn btn-accent" id="rv-confirm" disabled onclick="confirmReserve()">Confirm reservation</button>
       </div>
     </div>
   </div>
@@ -63,27 +59,36 @@
 <script src="/site/js/data.js"></script>
 <script src="/site/js/common.js"></script>
 <script>
+const AMENITIES = ["Wi-Fi","Whiteboard","TV Screen","Power","Recording","Projector"];
+
 async function init(){
   const libs = await window.api.getLibraries();
   document.getElementById("f-lib").innerHTML += libs.map(l=>`<option value="${l.id}">${l.name}</option>`).join("");
+  document.getElementById("f-amen").innerHTML = AMENITIES.map(a=>`<label><input type="checkbox" value="${a}"/> ${a}</label>`).join("");
   const p = new URLSearchParams(location.search);
   if(p.get("libraryId")) document.getElementById("f-lib").value = p.get("libraryId");
   document.getElementById("f-date").valueAsDate = new Date();
-  const hours = Array.from({length:14},(_,i)=>`${(8+i).toString().padStart(2,"0")}:00`);
-  document.getElementById("rv-start").innerHTML = hours.map(h=>`<option>${h}</option>`).join("");
-  document.getElementById("rv-end").innerHTML = hours.map(h=>`<option>${h}</option>`).join("");
   refresh();
 }
-function reset(){ document.querySelectorAll(".filter-panel input,.filter-panel select").forEach(el=>{ if(el.type==="checkbox") el.checked=false; else if(el.id!=="f-dur") el.value=""; }); refresh(); }
+function reset(){
+  document.getElementById("f-cap").value="";
+  document.getElementById("f-lib").value="";
+  document.getElementById("f-avail").checked=false;
+  document.querySelectorAll("#f-amen input").forEach(c=>c.checked=false);
+  refresh();
+}
+function selectedAmenities(){ return Array.from(document.querySelectorAll("#f-amen input:checked")).map(c=>c.value); }
 
 async function refresh(){
   const mount = document.getElementById("rooms-mount");
   mount.innerHTML = `<div class="col-12"><div class="skeleton" style="height:120px"></div></div>`;
-  const rooms = await window.api.getRooms({
+  let rooms = await window.api.getRooms({
     libraryId: document.getElementById("f-lib").value,
     minCapacity: +document.getElementById("f-cap").value || null,
     availableOnly: document.getElementById("f-avail").checked,
   });
+  const amen = selectedAmenities();
+  if(amen.length) rooms = rooms.filter(r => amen.every(a => (r.amenities||[]).includes(a)));
   if(!rooms.length){ mount.innerHTML = `<div class="col-12">${emptyState("No rooms match your filters.","🪑")}</div>`; return; }
   mount.innerHTML = rooms.map(r => {
     const busyIdx = (r.name.length + r.capacity) % 7;
@@ -101,27 +106,45 @@ async function refresh(){
           </div>
           <div class="mt-2">${r.amenities.map(a=>`<span class="chip">${a}</span>`).join("")}</div>
           <div class="week-preview">${days}</div>
-          <div class="mt-3"><button class="btn btn-accent btn-sm" ${!r.isAvailable?'disabled':''} onclick="openReserve('${r.id}','${r.name}')">Reserve</button></div>
+          <div class="mt-3"><button class="btn btn-accent btn-sm" ${!r.isAvailable?'disabled':''} onclick="openReserve('${r.id}','${r.name.replace(/'/g,"\\'")}')">Reserve</button></div>
         </div>
       </div></div>`;
   }).join("");
 }
 
-let currentRoom = null;
+let currentRoom = null, selectedSlot = null;
+function renderSlots(roomId){
+  // deterministic "busy" slots per room+date
+  const dateStr = document.getElementById("rv-date").value || "";
+  const seed = (roomId+dateStr).split("").reduce((a,c)=>a+c.charCodeAt(0),0);
+  const slots = [];
+  for(let h=8; h<22; h++){
+    const busy = ((seed + h*7) % 5) === 0;
+    slots.push({ label:`${String(h).padStart(2,"0")}:00 – ${String(h+1).padStart(2,"0")}:00`, hour:h, busy });
+  }
+  document.getElementById("rv-slots").innerHTML = slots.map(s =>
+    `<button type="button" class="slot-btn" data-h="${s.hour}" ${s.busy?'disabled title="Already booked"':''}>${s.label}</button>`
+  ).join("");
+  selectedSlot = null;
+  document.getElementById("rv-confirm").disabled = true;
+  document.querySelectorAll("#rv-slots .slot-btn").forEach(b=>b.addEventListener("click",()=>{
+    document.querySelectorAll("#rv-slots .slot-btn").forEach(x=>x.classList.remove("selected"));
+    b.classList.add("selected");
+    selectedSlot = +b.dataset.h;
+    document.getElementById("rv-confirm").disabled = false;
+  }));
+}
 function openReserve(id, name){
   currentRoom = id;
   document.getElementById("rv-title").textContent = `Reserve ${name}`;
   document.getElementById("rv-date").valueAsDate = new Date();
+  renderSlots(id);
+  document.getElementById("rv-date").onchange = ()=>renderSlots(id);
   new bootstrap.Modal(document.getElementById("reserve-modal")).show();
-  // simulate conflict on specific slot
-  document.getElementById("rv-start").onchange = document.getElementById("rv-end").onchange = () => {
-    const s = document.getElementById("rv-start").value, e = document.getElementById("rv-end").value;
-    document.getElementById("rv-warn").style.display = (s==="14:00" || e==="15:00") ? "block" : "none";
-  };
 }
 function confirmReserve(){
   bootstrap.Modal.getInstance(document.getElementById("reserve-modal")).hide();
-  toast("Reservation requested — pending librarian confirmation.");
+  toast(`Reservation requested for ${String(selectedSlot).padStart(2,"0")}:00 — pending librarian confirmation.`);
 }
 
 init();
