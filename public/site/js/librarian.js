@@ -236,8 +236,6 @@ async function paneReservations(){
   const rows = await window.api.getLibrarianReservations(state.libraryId);
   const filtered = filterRows(rows,"reservations",["roomName","userName","status"]);
   const sorted = sortRows(filtered,"reservations","reservationDate");
-  const statusSel = r=>`<select class="form-select form-select-sm" data-set-status="${r.id}" style="min-width:130px">${["Pending","Confirmed","Cancelled"].map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join("")}</select>`;
-  sorted.forEach(r=> r.__actions = statusSel(r));
   const cols = [
     {key:"roomName",label:"Room"},
     {key:"userName",label:"Member"},
@@ -245,14 +243,10 @@ async function paneReservations(){
     {key:"startTime",label:"Start"},
     {key:"endTime",label:"End"},
   ];
-  const html = paneHeader("Room Reservations","Approve or cancel bookings at your branch", toolbar("reservations"))
-    + `<div class="admin-card">${tableShell(cols,sorted,{pane:"reservations"})}</div>`;
+  const html = paneHeader("Room Reservations","Bookings at your branch", toolbar("reservations"))
+    + `<div class="admin-card">${tableShell(cols,sorted,{pane:"reservations", actions:false})}</div>`;
   setTimeout(()=>{
     wireToolbar("reservations"); wireSort("reservations","reservationDate");
-    $$("[data-set-status]").forEach(s=>s.addEventListener("change", async e=>{
-      await window.api.setRoomReservationStatus(s.dataset.setStatus, e.target.value);
-      toast("Status updated"); renderPane("reservations");
-    }));
   },0);
   return html;
 }

@@ -42,7 +42,7 @@ function bookCard(b){
   return `<div class="card-lib book-card h-100">
     <div class="cover">
       <img src="${b.mainImageUrl}" alt="${b.title}" loading="lazy"/>
-      <button class="fav" aria-label="favorite" onclick="event.preventDefault();event.stopPropagation();this.classList.toggle('active')">♥</button>
+      <button class="fav" aria-label="save to shelf" onclick="event.preventDefault();event.stopPropagation();openShelfPicker('${b.id}',this)">♥</button>
     </div>
     <a href="/site/book.html?id=${b.id}" class="body" style="color:inherit">
       <div class="title">${b.title}</div>
@@ -53,6 +53,36 @@ function bookCard(b){
       </div>
     </a>
   </div>`;
+}
+
+async function openShelfPicker(bookId, anchor){
+  document.querySelectorAll(".shelf-picker").forEach(el=>el.remove());
+  const user = window.api.currentUser();
+  if(!user){ toast("Please log in to save to shelves"); return; }
+  const shelves = await window.api.getMyShelves();
+  const pop = document.createElement("div");
+  pop.className = "shelf-picker";
+  pop.style.cssText = "position:absolute;z-index:1080;background:#fff;border:1px solid #e5e2d8;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.12);min-width:200px;padding:.35rem 0;font-size:.9rem";
+  pop.innerHTML = `<div class="px-3 py-1 small text-muted-2">Save to shelf</div>`
+    + (shelves.length
+        ? shelves.map(s=>`<button type="button" class="shelf-opt" data-sh="${s.id}" style="display:block;width:100%;text-align:left;padding:.5rem 1rem;border:0;background:none">📚 ${s.name} <span class="text-muted-2 small">${s.bookIds.includes(bookId)?"· added":""}</span></button>`).join("")
+        : `<div class="px-3 py-2 text-muted-2 small">No shelves yet. Create one in your dashboard.</div>`);
+  document.body.appendChild(pop);
+  const r = anchor.getBoundingClientRect();
+  pop.style.top = (window.scrollY + r.bottom + 6) + "px";
+  pop.style.left = (window.scrollX + r.left) + "px";
+  pop.querySelectorAll(".shelf-opt").forEach(btn=>btn.addEventListener("click", async ()=>{
+    const shId = btn.dataset.sh;
+    const list = await window.api.getMyShelves();
+    const sh = list.find(x=>x.id===shId); if(!sh) return;
+    if(!sh.bookIds.includes(bookId)) sh.bookIds.push(bookId);
+    await window.api.saveMyShelves(list);
+    toast(`Saved to ${sh.name}`);
+    anchor.classList.add("active");
+    pop.remove();
+  }));
+  const closer = (e)=>{ if(!pop.contains(e.target)){ pop.remove(); document.removeEventListener("click", closer); } };
+  setTimeout(()=>document.addEventListener("click", closer), 0);
 }
 
 async function renderNavbar(activeKey){
