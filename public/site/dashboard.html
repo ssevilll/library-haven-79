@@ -121,7 +121,7 @@
           <h5 class="mb-3 px-2">Transactions</h5>
           <div class="table-responsive">
             <table class="tx-table">
-              <thead><tr><th>Date</th><th>Type</th><th>Description</th><th class="text-end">Amount</th><th>Status</th></tr></thead>
+              <thead><tr><th>Date</th><th>Type</th><th class="text-end">Amount</th><th>Status</th></tr></thead>
               <tbody id="tx-body"></tbody>
             </table>
           </div>
@@ -188,7 +188,6 @@
     <div class="modal-header"><h5 class="modal-title">New shelf</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
     <form id="shelf-form"><div class="modal-body">
       <div class="mb-3"><label class="form-label">Name</label><input class="form-control" name="name" required maxlength="40"/></div>
-      <div class="mb-3"><label class="form-label">Icon (single emoji)</label><input class="form-control" name="icon" value="📖" maxlength="2"/></div>
     </div><div class="modal-footer"><button class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button><button class="btn btn-accent" type="submit">Create</button></div></form>
   </div></div>
 </div>
@@ -290,10 +289,6 @@
           ${l.fine?`<span class="ms-2 text-danger">Fine $${l.fine.toFixed(2)}</span>`:""}
         </div>
       </div>
-      <div class="d-flex gap-2">
-        <button class="btn btn-outline-accent btn-sm" ${l.renewals>=2?"disabled":""}>Renew</button>
-        <button class="btn btn-ghost btn-sm">Return</button>
-      </div>
     </div>`;
   }
   function historyRow(h){
@@ -353,7 +348,7 @@
       const thumbs = books.slice(0,4).map(b=>`<img src="${b.mainImageUrl}" alt="${b.title}"/>`).join("");
       const more = books.length>4?`<div class="more">+${books.length-4}</div>`:"";
       return `<div class="col-md-6 col-lg-4"><div class="shelf-card">
-        <div class="head"><div class="nm">${sh.icon||"📖"} ${sh.name}</div>
+        <div class="head"><div class="nm">📚 ${sh.name}</div>
           <button class="btn btn-ghost btn-sm" data-del="${sh.id}">Delete</button></div>
         <div class="thumbs">${thumbs||'<span class="text-muted-2 small">Empty</span>'}${more}</div>
         <div class="text-muted-2 small">${books.length} book${books.length!==1?"s":""}</div>
@@ -376,10 +371,10 @@
     e.preventDefault();
     const fd = new FormData(e.target);
     const shelves = await window.api.getMyShelves();
-    shelves.push({ id:"sh"+Date.now(), name:fd.get("name"), icon:fd.get("icon")||"📖", bookIds:[] });
+    shelves.push({ id:"sh"+Date.now(), name:fd.get("name"), icon:"📚", bookIds:[] });
     await window.api.saveMyShelves(shelves);
     bootstrap.Modal.getInstance(document.getElementById("shelfModal")).hide();
-    e.target.reset(); e.target.icon.value = "📖";
+    e.target.reset();
     toast("Shelf created");
     renderShelves();
   });
@@ -435,7 +430,6 @@
       <tr>
         <td>${fmtDate(t.date)}</td>
         <td>${t.type}</td>
-        <td class="text-muted-2">${t.description}</td>
         <td class="text-end ${t.amount<0?"amt-neg":"amt-pos"}">${t.amount<0?"−":"+"}$${Math.abs(t.amount).toFixed(2)}</td>
         <td><span class="pill ${t.status}">${t.status}</span></td>
       </tr>`).join("");
