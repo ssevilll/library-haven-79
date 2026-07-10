@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Chat — Librarian</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="/site/css/styles.css" rel="stylesheet"/>
+</head>
+<body>
+<div class="admin-topbar">
+  <a class="btn btn-ghost btn-sm" href="/site/librarian.html">← Back to panel</a>
+  <span class="brand">Lumen<span style="color:var(--accent)">.</span>Librarian</span>
+  <span></span>
+</div>
+
+<div class="container section-tight">
+  <div class="eyebrow">Messages</div>
+  <h1 class="mt-1 mb-4">Chat with your members.</h1>
+
+  <div class="chat-shell">
+    <aside class="chat-sidebar" id="threads"></aside>
+    <section class="chat-main">
+      <div class="chat-header" id="chatHeader"><span class="text-muted-2">Select a conversation</span></div>
+      <div class="chat-messages" id="messages"></div>
+      <form class="chat-composer" id="composer" onsubmit="event.preventDefault();sendMsg()">
+        <input class="form-control" id="msgInput" placeholder="Type a message…" autocomplete="off" disabled/>
+        <button class="btn btn-accent" id="sendBtn" disabled>Send</button>
+      </form>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/site/js/data.js"></script>
+<script src="/site/js/common.js"></script>
+<script>
+// Librarian ↔ member threads (mock, mirrors chat.html)
+const THREADS = [
+  { id:"m1", name:"Nina Rojas", role:"Member · Central", unread:2,
+    messages:[
+      { from:"them", text:"Hi! When can I pick up 'A Quiet Astronomy'?", time:"09:14" },
+      { from:"them", text:"Also — is the reading circle still on Thursday?", time:"09:15" },
+      { from:"me",   text:"Your copy is ready — we'll hold it until Thursday.", time:"10:02" },
+    ]},
+  { id:"m2", name:"David Kimura", role:"Member · Harborview", unread:1,
+    messages:[
+      { from:"them", text:"Can I extend 'Iron Season' another week?", time:"Yesterday" },
+    ]},
+  { id:"m3", name:"Priya Sundar", role:"Member · Central", unread:0,
+    messages:[
+      { from:"me",   text:"Reminder — small fine of $3.50 on your account.", time:"Mon" },
+      { from:"them", text:"Thanks — paid just now.", time:"Mon" },
+    ]},
+  { id:"m4", name:"Aaron Levi", role:"Member · Ashgrove", unread:0,
+    messages:[
+      { from:"them", text:"Do you have 'The Cartographer's Daughter' in stock?", time:"Jun 22" },
+      { from:"me",   text:"Yes — reserved for you at the front desk.", time:"Jun 22" },
+    ]},
+  { id:"m5", name:"Lumen Support", role:"System", unread:0,
+    messages:[
+      { from:"them", text:"Welcome to librarian chat. Members will reach you here.", time:"Jun 10" },
+    ]},
+];
+let activeId = THREADS[0].id;
+
+function renderThreads(){
+  document.getElementById("threads").innerHTML = THREADS.map(t=>{
+    const last = t.messages[t.messages.length-1];
+    return `<div class="thread ${t.id===activeId?'active':''}" data-id="${t.id}">
+      <div class="av">${t.name.split(" ").map(x=>x[0]).slice(0,2).join("")}</div>
+      <div style="min-width:0;flex:1">
+        <div class="nm">${t.name}</div>
+        <div class="pv">${last ? (last.from==='me'?'You: ':'')+last.text : 'No messages yet'}</div>
+      </div>
+      ${t.unread?`<span class="un">${t.unread}</span>`:''}
+    </div>`;
+  }).join("");
+  document.querySelectorAll(".chat-sidebar .thread").forEach(el=>el.addEventListener("click",()=>{
+    activeId = el.dataset.id;
+    const t = THREADS.find(x=>x.id===activeId); if(t) t.unread=0;
+    renderThreads(); renderActive();
+  }));
+}
+function renderActive(){
+  const t = THREADS.find(x=>x.id===activeId);
+  document.getElementById("chatHeader").innerHTML = t
+    ? `<div class="av" style="width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:600">${t.name.split(" ").map(x=>x[0]).slice(0,2).join("")}</div>
+       <div><div class="fw-semibold">${t.name}</div><div class="small text-muted-2">${t.role}</div></div>`
+    : `<span class="text-muted-2">Select a conversation</span>`;
+  const box = document.getElementById("messages");
+  if(!t){ box.innerHTML = emptyState("No conversation selected.","💬"); return; }
+  if(!t.messages.length){ box.innerHTML = emptyState("No messages yet — say hello.","👋"); }
+  else box.innerHTML = t.messages.map(m=>`
+    <div class="chat-msg ${m.from==='me'?'me':'them'}">
+      <div class="bubble">${m.text}<div class="time">${m.time}</div></div>
+    </div>`).join("");
+  box.scrollTop = box.scrollHeight;
+  document.getElementById("msgInput").disabled = false;
+  document.getElementById("sendBtn").disabled = false;
+}
+function sendMsg(){
+  const inp = document.getElementById("msgInput");
+  const txt = inp.value.trim(); if(!txt) return;
+  const t = THREADS.find(x=>x.id===activeId); if(!t) return;
+  const now = new Date().toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+  t.messages.push({from:"me",text:txt,time:now});
+  inp.value=""; renderThreads(); renderActive();
+  setTimeout(()=>{
+    t.messages.push({from:"them",text:"Thanks — got it!",time:new Date().toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})});
+    renderThreads(); renderActive();
+  }, 1200);
+}
+renderThreads(); renderActive();
+</script>
+</body>
+</html>
