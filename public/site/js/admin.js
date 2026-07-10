@@ -283,7 +283,7 @@ function editBook(rec){
     + `<div class="row"><div class="col-md-6">${field("Published",`<input type="date" class="form-control" name="publishedDate" value="${r.publishedDate}"/>`)}</div>
        <div class="col-md-6">${field("Pages",`<input type="number" class="form-control" name="pageCount" value="${r.pageCount}"/>`)}</div></div>`
     + field("Cover image (file)",`<input type="file" accept="image/*" class="form-control" id="mainImgFile"/>${mainPreview}`)
-    + field("Additional photos (multiple)",`<input type="file" accept="image/*" multiple class="form-control" id="addlImgFiles"/><div id="addlPrev" class="d-flex gap-2 flex-wrap mt-2">${addlPreview}</div>`)
+    + (rec ? "" : field("Additional photos (multiple)",`<input type="file" accept="image/*" multiple class="form-control" id="addlImgFiles"/><div id="addlPrev" class="d-flex gap-2 flex-wrap mt-2"></div>`))
     + `<div class="row"><div class="col-md-6">${field("Author",`<select class="form-select" name="authorId">${authors}</select>`)}</div>
        <div class="col-md-6">${field("Library", libSelect("libraryId", r.libraryId))}</div></div>`
     + `<div class="row"><div class="col-md-6">${field("Genres (hold ⌘/Ctrl)",`<select class="form-select" name="genreIds" multiple size="5">${genres}</select>`)}</div>
@@ -400,7 +400,6 @@ async function paneReservations(){
   const rows = await window.api.getAllRoomReservations();
   const filtered = filterRows(rows, "reservations", ["roomName","userName","libraryName","status"]);
   const sorted = sortRows(filtered, "reservations", "reservationDate");
-  sorted.forEach(r => r.__actions = `<button class="btn btn-outline-accent btn-sm" data-edit-res="${r.id}">Edit</button>`);
   const cols = [
     {key:"roomName", label:"Room"},
     {key:"libraryName", label:"Library"},
@@ -409,17 +408,11 @@ async function paneReservations(){
     {key:"startTime", label:"Start"},
     {key:"endTime", label:"End"},
   ];
-  const html = paneHeader("Room Reservations","Approve or cancel bookings", toolbar("reservations",""))
-    + `<div class="admin-card">${tableShell(cols, sorted, {pane:"reservations"})}</div>`;
+  const html = paneHeader("Room Reservations","Bookings across all libraries", toolbar("reservations",""))
+    + `<div class="admin-card">${tableShell(cols, sorted, {pane:"reservations", actions:false})}</div>`;
   setTimeout(()=>{
     wireToolbar("reservations",()=>renderPane("reservations"));
     wireSort("reservations","reservationDate",()=>renderPane("reservations"));
-    $$("[data-edit-res]").forEach(b=>b.addEventListener("click", ()=>{
-      const r = rows.find(x=>x.id===b.dataset.editRes);
-      openStatusEditor(`Reservation — ${r.roomName}`, r.status, ["Pending","Confirmed","Cancelled"], async(v)=>{
-        await window.api.setRoomReservationStatus(r.id, v); toast("Status updated"); renderPane("reservations");
-      });
-    }));
   },0);
   return html;
 }
