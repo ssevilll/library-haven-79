@@ -73,7 +73,7 @@
       </dl>
       <div class="d-flex gap-2 mt-4">
         <button class="btn btn-accent px-4" onclick="requestBorrow('${book.id}')" ${!book.inStock?'disabled':''}>Borrow this book</button>
-        <button class="btn btn-outline-accent" onclick="toast('Added to your Want to Read shelf')">♥ Save to shelf</button>
+        <button class="btn btn-outline-accent" onclick="openShelfPicker('${book.id}',this)">♥ Save to shelf</button>
       </div>
     </div>
   </div>`;
